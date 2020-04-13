@@ -1,0 +1,14 @@
+[package]
+name = "rawcmd"
+description = "Command-line colors and other styles."
+license = "MIT"
+version = "0.0.0"
+authors = ["Kristijan Sedlak <xpepermint@gmail.com>"]
+edition = "2018"
+documentation = "https://github.com/xpepermint/rawcmd"
+homepage = "https://github.com/xpepermint/rawcmd"
+repository = "https://github.com/xpepermint/rawcmd"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]

@@ -55,6 +55,11 @@ impl Intent {
         &self.flags
     }
 
+    /// Returns summary objects of all flags.
+    pub fn flag(&self, name: &str) -> Option<&FlagSummary> {
+        self.flags.iter().find(|f| *f.name() == name )
+    }
+
     /// Returns true if command-line arguments are present.
     pub fn has_args(&self) -> bool {
         !self.args.is_empty()
@@ -73,5 +78,28 @@ impl Intent {
     /// Returns true if the executed command has child commands.
     pub fn has_flags(&self) -> bool {
         !self.flags.is_empty()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn intent_with_flags(flags: Vec<FlagSummary>) -> Intent {
+        let args: Vec<String> = vec![];
+        let command: CommandSummary = CommandSummary::with_name("", None, None, None, None);
+        let supcommands: Vec<CommandSummary> = vec![];
+        let subcommands: Vec<CommandSummary> = vec![];
+        let flags: Vec<FlagSummary> = flags;
+        Intent::new(args, command, supcommands, subcommands, flags)
+    }
+
+    #[test]
+    fn provides_flag_by_name() {
+        let intent = intent_with_flags(vec![
+            FlagSummary::with_name("a", None, None, None, None, false, false),
+            FlagSummary::with_name("b", None, None, None, None, false, false),
+        ]);
+        assert_eq!(intent.flag("b").unwrap().name(), "b");
     }
 }

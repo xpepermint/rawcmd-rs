@@ -6,34 +6,37 @@ Example:
 use std::env;
 use rawcmd::{Command, Flag, Intent};
 
-fn resolver1(intent: Intent) {
+fn resolver(intent: Intent) -> Option<usize>  {
     intent.command();
-}
-fn resolver2(intent: Intent) {
     intent.supcommands();
     intent.subcommands();
 }
 
-Command::new("cmd1")
+Command::with_name("cmd1")
     .with_description("Command 1")
     .with_flag(
-        Flag::new("flag1")
+        Flag::with_name("flag1")
             .with_alias("f1")
             .with_description("Flag 1")
             .with_value(true, Some("default"))
     )
     .with_subcommand(
-        Command::new("cmd1:1")
+        Command::with_name("cmd1:1")
             .with_description("Command 1:1")
             .with_flag(
-                Flag::new(flag2)
+                Flag::with_name(flag2)
                     .with_alias("f2")
                     .with_description("Flag 2")
             )
-            .with_resolver(resolver2)
+            .with_resolver(resolver)
     )
-    .with_resolver(resolver1)
+    .with_resolver(|_| { Some(0) })
     .perform(
         env::args().skip(1).collect(),
     );
 ```
+
+Notes:
+
+* Add global error handling (parsing args)
+* Add term

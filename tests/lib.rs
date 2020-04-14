@@ -1,17 +1,17 @@
 use rawcmd::{Command, Intent};
 
-fn resolver0(intent: Intent) -> Option<usize> {
+fn resolver0(_: Intent) -> Option<usize> {
     Some(0)
 }
-fn resolver1(intent: Intent) -> Option<usize> {
+fn resolver1(_: Intent) -> Option<usize> {
     Some(1)
 }
 
 #[test]
 fn performs_command() {
-    let app = Command::new("0")
+    let app = Command::with_name("0")
         .with_subcommand(
-            Command::new("1").with_resolver(resolver1)
+            Command::with_name("1").with_resolver(resolver1)
         )
         .with_resolver(resolver0);
     let args = vec![];
@@ -20,15 +20,15 @@ fn performs_command() {
 
 #[test]
 fn performs_subcommand() {
-    let app = Command::new("0")
+    let app = Command::with_name("0")
         .with_subcommand(
-            Command::new("1").with_resolver(resolver0)
+            Command::with_name("1").with_resolver(resolver0)
         )
         .with_subcommand(
-            Command::new("2").with_resolver(resolver1)
+            Command::with_name("2").with_resolver(resolver1)
         )
         .with_subcommand(
-            Command::new("3").with_resolver(resolver0)
+            Command::with_name("3").with_resolver(resolver0)
         )
         .with_resolver(resolver0);
     let args = vec!["2".to_string()];

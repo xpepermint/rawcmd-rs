@@ -7,6 +7,9 @@ use crate::{Flag, Intent, build_command_positions, build_command_summary,
 pub struct Command {
     name: String,
     description: Option<String>,
+    hint: Option<String>,
+    author: Option<String>,
+    version: Option<String>,
     flags: Vec<Flag>,
     commands: Vec<Command>,
     resolver: Option<fn(Intent) -> Option<usize>>,
@@ -25,6 +28,21 @@ impl Command {
         &self.description
     }
 
+    /// Returns hint.
+    pub fn hint(&self) -> &Option<String> {
+        &self.hint
+    }
+
+    /// Returns author.
+    pub fn author(&self) -> &Option<String> {
+        &self.author
+    }
+
+    /// Returns version.
+    pub fn version(&self) -> &Option<String> {
+        &self.version
+    }
+
     /// Returns flags.
     pub fn flags(&self) -> &Vec<Flag> {
         &self.flags
@@ -40,19 +58,40 @@ impl Command {
 impl Command {
 
     /// Returns new instance.
-    pub fn new(name: &str) -> Self {
+    pub fn with_name(name: &str) -> Self {
         Self {
             name: name.to_string(),
             description: None,
             flags: Vec::new(),
             commands: Vec::new(),
             resolver: None,
+            hint: None,
+            author: None,
+            version: None,
         }
     }
 
     /// Sets description.
     pub fn with_description(mut self, val: &str) -> Self {
         self.description = Some(val.to_string());
+        self
+    }
+
+    /// Sets hint.
+    pub fn with_hint(mut self, val: &str) -> Self {
+        self.hint = Some(val.to_string());
+        self
+    }
+
+    /// Sets description.
+    pub fn with_author(mut self, val: &str) -> Self {
+        self.author = Some(val.to_string());
+        self
+    }
+
+    /// Sets version.
+    pub fn with_version(mut self, val: &str) -> Self {
+        self.version = Some(val.to_string());
         self
     }
     
@@ -106,7 +145,7 @@ mod tests {
     #[test]
     fn performs_command() {
         fn resolver0(_: Intent) -> Option<usize> { Some(0) };
-        let app = Command::new("a")
+        let app = Command::with_name("a")
             .with_resolver(resolver0);
         assert_eq!(app.perform(vec![]), Some(0));
     }
@@ -115,9 +154,9 @@ mod tests {
     fn performs_subcommand() {
         fn resolver0(_: Intent) -> Option<usize> { Some(0) };
         fn resolver1(_: Intent) -> Option<usize> { Some(1) };
-        let app = Command::new("a")
+        let app = Command::with_name("a")
             .with_subcommand(
-                Command::new("b")
+                Command::with_name("b")
                     .with_resolver(resolver1)
             )
             .with_resolver(resolver0);

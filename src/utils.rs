@@ -43,18 +43,21 @@ pub fn command_at_position<'a>(app: &'a Command, positions: &Vec<usize>) -> &'a 
 
 /// Returns command summary.
 pub fn build_command_summary(command: &Command) -> CommandSummary {
-    CommandSummary::new(
+    CommandSummary::with_name(
         command.name().clone().as_str(),
-        command.description().clone()
+        command.description().clone(),
+        command.hint().clone(),
+        command.author().clone(),
+        command.version().clone(),
     )
 }
 
 /// Returns command summary.
 pub fn build_flag_summary(flag: &Flag, provided: bool, value: &Option<String>) -> FlagSummary {
-    FlagSummary::new(
+    FlagSummary::with_name(
         flag.name().clone().as_str(),
         flag.alias().clone(),
-        flag.description().clone(),
+        flag.hint().clone(),
         value.clone(),
         flag.default_value().clone(),
         flag.accepts_value().clone(),
@@ -129,12 +132,12 @@ mod tests {
 
     #[test]
     fn builds_flag_summaries() {
-        let command = Command::new("")
-            .with_flag(Flag::new("aaa"))
-            .with_flag(Flag::new("bbb").with_alias("b"))
-            .with_flag(Flag::new("ccc").with_alias("c").accept_value())
-            .with_flag(Flag::new("ddd").with_alias("d"))
-            .with_flag(Flag::new("eee"));
+        let command = Command::with_name("")
+            .with_flag(Flag::with_name("aaa"))
+            .with_flag(Flag::with_name("bbb").with_alias("b"))
+            .with_flag(Flag::with_name("ccc").with_alias("c").accept_value())
+            .with_flag(Flag::with_name("ddd").with_alias("d"))
+            .with_flag(Flag::with_name("eee"));
         let args = vec!["--aaa".to_string(), "-c".to_string(), "cval".to_string(), "--eee".to_string()];
         let summaries = build_flag_summaries(&command, &args);
         let total = summaries.len();

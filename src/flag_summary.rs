@@ -5,7 +5,9 @@ pub struct FlagSummary {
     alias: Option<String>,
     description: Option<String>,
     value: Option<String>,
-    takes: bool,
+    default_value: Option<String>,
+    accepts_value: bool,
+    provided: bool,
 }
 
 /// Structure implementation.
@@ -17,14 +19,18 @@ impl FlagSummary {
         alias: Option<String>,
         description: Option<String>,
         value: Option<String>,
-        takes: bool,
+        default_value: Option<String>,
+        accepts_value: bool,
+        provided: bool,
     ) -> Self {
         Self {
             name: name.to_string(),
             alias,
             description,
             value,
-            takes,
+            default_value,
+            accepts_value,
+            provided,
         }
     }
 }
@@ -52,33 +58,18 @@ impl FlagSummary {
         &self.value
     }
 
+    /// Returns default value.
+    pub fn default_value(&self) -> &Option<String> {
+        &self.default_value
+    }
+
     /// Returns true if the flag has value.
-    pub fn takes(&self) -> &bool {
-        &self.takes
+    pub fn accepts_value(&self) -> bool {
+        self.accepts_value
     }
 
-    /// Returns alias.
-    pub fn set_alias(&mut self, val: &str) {
-        self.alias = Some(val.to_string())
-    }
-
-    /// Returns description.
-    pub fn set_description(&mut self, val: &str) {
-        self.description = Some(val.to_string())
-    }
-
-    // Sets value.
-    pub fn set_value(mut self, val: Option<&str>) -> Self {
-        self.value = match val {
-            Some(v) => Some(v.to_string()),
-            None => None,
-        };
-        self
-    }
-
-    // Sets value.
-    pub fn set_takes(mut self, takes: bool) -> Self {
-        self.takes = takes;
-        self
+    /// Returns true if the flag has value.
+    pub fn provided(&self) -> bool {
+        self.provided
     }
 }

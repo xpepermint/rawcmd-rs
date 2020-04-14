@@ -1,5 +1,3 @@
-use crate::{FlagSummary};
-
 /// Flag structure which represents command-line option.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Flag {
@@ -34,19 +32,8 @@ impl Flag {
     }
 
     /// Returns true if the flag accepts value.
-    pub fn accepts_value(&self) -> &bool {
-        &self.accepts_value
-    }
-
-    /// Builds summary for this command.
-    pub fn summarize(&self) -> FlagSummary {
-        FlagSummary::new(
-            self.name.clone().as_str(),
-            self.alias.clone(),
-            self.description.clone(),
-            self.default_value.clone(),
-            self.accepts_value.clone(),
-        )
+    pub fn accepts_value(&self) -> bool {
+        self.accepts_value
     }
 }
 
@@ -77,8 +64,8 @@ impl Flag {
     }
 
     /// Sets value.
-    pub fn with_default_value(mut self, default: &str) -> Self {
-        self.default_value = Some(default.to_string());
+    pub fn with_default_value(mut self, val: &str) -> Self {
+        self.default_value = Some(val.to_string());
         self
     }
 
@@ -86,26 +73,5 @@ impl Flag {
     pub fn accept_value(mut self) -> Self {
         self.accepts_value = true;
         self
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn builds_summary() {
-        let flag = Flag::new("name")
-            .with_alias("alias")
-            .with_description("description")
-            .with_default_value("default_value")
-            .accept_value();
-        assert_eq!(flag.summarize(), FlagSummary::new(
-            "name",
-            Some("alias".to_string()),
-            Some("description".to_string()),
-            Some("default_value".to_string()),
-            true,
-        ));
     }
 }

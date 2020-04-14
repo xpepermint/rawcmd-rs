@@ -1,6 +1,6 @@
-use crate::{Flag, Intent, CommandSummary, build_command_positions,
+use crate::{Flag, Intent, build_command_positions, build_command_summary,
     command_at_position, build_supcommand_summaries, build_subcommand_summaries,
-    summarizebuild_flag_summaries};
+    build_flag_summaries};
 
 /// Command structure which represents command-line task.
 #[derive(Debug, Clone, PartialEq)]
@@ -33,14 +33,6 @@ impl Command {
     /// Returns commands.
     pub fn commands(&self) -> &Vec<Command> {
         &self.commands
-    }
-
-    /// Builds summary for this command.
-    pub fn summarize(&self) -> CommandSummary {
-        CommandSummary::new(
-            self.name.clone().as_str(),
-            self.description.clone(),
-        )
     }
 }
 
@@ -87,17 +79,17 @@ impl Command {
         let command_positions = build_command_positions(&self, &args);
         let command = command_at_position(&self, &command_positions);
 
-        let command_summary = command.summarize();
-        let supcommand_summary = build_supcommand_summaries(&self, &command_positions);
-        let subcommand_summary = build_subcommand_summaries(&command);
-        let flag_snapeshots = summarizebuild_flag_summaries(&command);
+        let command_summary = build_command_summary(&command);
+        let supcommand_summaries = build_supcommand_summaries(&self, &command_positions);
+        let subcommand_summaries = build_subcommand_summaries(&command);
+        let flag_summaries = build_flag_summaries(&command, &args);
 
         let intent = Intent::new(
             args,
             command_summary,
-            supcommand_summary,
-            subcommand_summary,
-            flag_snapeshots,
+            supcommand_summaries,
+            subcommand_summaries,
+            flag_summaries,
         );
 
         match command.resolver {
@@ -130,15 +122,5 @@ mod tests {
             )
             .with_resolver(resolver0);
         assert_eq!(app.perform(vec!["b".to_string()]), Some(1));
-    }
-
-    #[test]
-    fn builds_summary() {
-        let app = Command::new("name")
-            .with_description("description");
-        assert_eq!(app.summarize(), CommandSummary::new(
-            "name",
-            Some("description".to_string()),
-        ));
     }
 }

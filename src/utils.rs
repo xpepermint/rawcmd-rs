@@ -1,4 +1,4 @@
-use crate::{Command, CommandSummary, FlagSummary};
+use crate::{Command, CommandSummary, Flag, FlagSummary};
 
 /// Parses arguments and finds command positions in a tree.
 pub fn build_command_positions(app: &Command, args: &Vec<String>) -> Vec<usize> {
@@ -41,30 +41,109 @@ pub fn command_at_position<'a>(app: &'a Command, positions: &Vec<usize>) -> &'a 
     command
 }
 
+/// Returns command summary.
+pub fn build_command_summary(command: &Command) -> CommandSummary {
+    CommandSummary::new(
+        command.name().clone().as_str(),
+        command.description().clone()
+    )
+}
+
+/// Returns command summary.
+pub fn build_flag_summary(flag: &Flag, provided: bool, value: &Option<String>) -> FlagSummary {
+    FlagSummary::new(
+        flag.name().clone().as_str(),
+        flag.alias().clone(),
+        flag.description().clone(),
+        value.clone(),
+        flag.default_value().clone(),
+        flag.accepts_value().clone(),
+        provided.clone(),
+    )
+}
+
 /// Returns summary objects of parent commands. 
 pub fn build_supcommand_summaries(app: &Command, positions: &Vec<usize>) -> Vec<CommandSummary> {
-    let mut list = Vec::new();
+    let mut all = Vec::new();
     for _ in positions.into_iter() {
         let command = command_at_position(&app, &positions);
-        list.push(command.summarize());
+        all.push(build_command_summary(command));
     }
-    list
+    all
 }
 
 /// Returns summary objects of child commands. 
 pub fn build_subcommand_summaries(command: &Command) -> Vec<CommandSummary> {
-    let mut list = Vec::new();
+    let mut all = Vec::new();
     for subcommand in command.commands().into_iter() {
-        list.push(subcommand.summarize());
+        all.push(build_command_summary(subcommand));
     }
-    list
+    all
 }
 
 /// Returns flag summary objects for command. 
-pub fn summarizebuild_flag_summaries(command: &Command) -> Vec<FlagSummary> {
-    let mut list = Vec::new();
-    for flag in command.flags().into_iter() {
-        list.push(flag.summarize());
+pub fn build_flag_summaries(command: &Command, args: &Vec<String>) -> Vec<FlagSummary> {
+    let mut all = Vec::new();
+
+    for (index, arg) in args.into_iter().enumerate() {
+
+        if !arg.starts_with("-") {
+            continue
+        } else if arg == "--" {
+            break;
+        }
+
+        let flag = command.flags().iter().find(|&f| {
+            *arg == format!("{}{}", "--", &f.name())
+            || f.alias().is_some() && *arg == format!("{}{}", "-", f.alias().as_ref().unwrap())
+        });
+        let flag = match flag {
+            Some(f) => f,
+            None => panic!("unknown flag"),
+        };
+
+        let value = if flag.accepts_value() {
+            Some(match &args.get(index + 1) {
+                Some(v) => v.to_string(),
+                None => panic!("flag has no value"),
+            })
+        } else {
+            None
+        };
+        all.push(build_flag_summary(&flag, true, &value));
     }
-    list
+ 
+    for flag in command.flags().into_iter() {
+        let exists = &all.iter().any(|f| f.name() == flag.name());
+        if !exists {
+            all.push(build_flag_summary(flag, false, &None));
+        }
+    }
+
+    all
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn builds_flag_summaries() {
+        let command = Command::new("")
+            .with_flag(Flag::new("aaa"))
+            .with_flag(Flag::new("bbb").with_alias("b"))
+            .with_flag(Flag::new("ccc").with_alias("c").accept_value())
+            .with_flag(Flag::new("ddd").with_alias("d"))
+            .with_flag(Flag::new("eee"));
+        let args = vec!["--aaa".to_string(), "-c".to_string(), "cval".to_string(), "--eee".to_string()];
+        let summaries = build_flag_summaries(&command, &args);
+        let total = summaries.len();
+        let provided: Vec<FlagSummary> = summaries.into_iter()
+            .filter(|s| s.provided()).collect();
+        let names: Vec<String> = provided.iter()
+            .map(|s| s.name().clone()).collect();
+        assert_eq!(total, 5);
+        assert_eq!(names, ["aaa", "ccc", "eee"]);
+        assert_eq!(provided.get(1).unwrap().value().as_ref().unwrap(), "cval");
+    }
 }

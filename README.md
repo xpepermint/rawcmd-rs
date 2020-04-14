@@ -6,8 +6,13 @@ Example:
 use std::env;
 use rawcmd::{Command, Flag, Intent};
 
-fn resolver1(intent: Intent) {}
-fn resolver2(intent: Intent) {}
+fn resolver1(intent: Intent) {
+    intent.command();
+}
+fn resolver2(intent: Intent) {
+    intent.supcommands();
+    intent.subcommands();
+}
 
 Command::new("cmd1")
     .with_description("Command 1")

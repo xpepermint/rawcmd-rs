@@ -1,7 +1,7 @@
 use crate::{Command, CommandSummary, ErrorCode, Flag, FlagSummary};
 
 /// Parses arguments and finds command positions in a tree.
-pub fn build_command_positions(app: &Command, args: &Vec<String>) -> Result<Vec<usize>, ErrorCode> {
+pub fn build_command_positions(app: &Command, args: &Vec<String>) -> Result<Vec<usize>, usize> {
     let mut args = args.clone();
     args.reverse();
 
@@ -24,7 +24,7 @@ pub fn build_command_positions(app: &Command, args: &Vec<String>) -> Result<Vec<
                 positions.push(index);
                 break;
             } else if index == size - 1 {
-                return Err(ErrorCode::UnknownCommand);
+                return Err(ErrorCode::UnknownCommand as usize);
             }
         }
     }
@@ -85,7 +85,7 @@ pub fn build_subcommand_summaries(command: &Command) -> Vec<CommandSummary> {
 }
 
 /// Returns flag summary objects for command. 
-pub fn build_flag_summaries(command: &Command, args: &Vec<String>) -> Result<Vec<FlagSummary>, ErrorCode> {
+pub fn build_flag_summaries(command: &Command, args: &Vec<String>) -> Result<Vec<FlagSummary>, usize> {
     let mut all = Vec::new();
 
     for (index, arg) in args.into_iter().enumerate() {
@@ -102,13 +102,13 @@ pub fn build_flag_summaries(command: &Command, args: &Vec<String>) -> Result<Vec
         });
         let flag = match flag {
             Some(f) => f,
-            None => return Err(ErrorCode::UnknownFlag),
+            None => return Err(ErrorCode::UnknownFlag as usize),
         };
 
         let value = if flag.accepts_value() {
             Some(match &args.get(index + 1) {
                 Some(v) => v.to_string(),
-                None => return Err(ErrorCode::MissingFlagValue),
+                None => return Err(ErrorCode::MissingFlagValue as usize),
             })
         } else {
             None

@@ -12,7 +12,7 @@ pub struct Command {
     version: Option<String>,
     flags: Vec<Flag>,
     commands: Vec<Command>,
-    resolver: Option<fn(Intent) -> Result<usize, ErrorCode>>,
+    resolver: Option<fn(Intent) -> Result<usize, usize>>,
 }
 
 /// Command structure implementation.
@@ -96,7 +96,7 @@ impl Command {
     }
     
     /// Sets resolver function.
-    pub fn with_resolver(mut self, r: fn(Intent) -> Result<usize, ErrorCode>) -> Self {
+    pub fn with_resolver(mut self, r: fn(Intent) -> Result<usize, usize>) -> Self {
         self.resolver = Some(r);
         self
     }
@@ -114,7 +114,7 @@ impl Command {
     }
 
     /// Executes as a command-line application.
-    pub fn perform(self, args: Vec<String>) -> Result<usize, ErrorCode> {
+    pub fn perform(self, args: Vec<String>) -> Result<usize, usize> {
         let command_positions = match build_command_positions(&self, &args) {
             Ok(v) => v,
             Err(code) => return Err(code),
@@ -139,7 +139,7 @@ impl Command {
 
         match command.resolver {
             Some(resolver) => resolver(intent),
-            None => Err(ErrorCode::MissingResolver),
+            None => Err(ErrorCode::MissingResolver as usize),
         }
     }
 }
@@ -150,7 +150,7 @@ mod tests {
 
     #[test]
     fn performs_command() {
-        fn resolver0(_: Intent) -> Result<usize, ErrorCode> { Ok(0) };
+        fn resolver0(_: Intent) -> Result<usize, usize> { Ok(0) };
         let app = Command::with_name("a")
             .with_resolver(resolver0);
         assert_eq!(app.perform(vec![]), Ok(0));
@@ -158,8 +158,8 @@ mod tests {
 
     #[test]
     fn performs_subcommand() {
-        fn resolver0(_: Intent) -> Result<usize, ErrorCode> { Ok(0) };
-        fn resolver1(_: Intent) -> Result<usize, ErrorCode> { Ok(1) };
+        fn resolver0(_: Intent) -> Result<usize, usize> { Ok(0) };
+        fn resolver1(_: Intent) -> Result<usize, usize> { Ok(1) };
         let app = Command::with_name("a")
             .with_subcommand(
                 Command::with_name("b")

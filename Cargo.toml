@@ -9,6 +9,4 @@ documentation = "https://github.com/xpepermint/rawcmd"
 homepage = "https://github.com/xpepermint/rawcmd"
 repository = "https://github.com/xpepermint/rawcmd"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
 [dependencies]

@@ -1,6 +1,6 @@
-use crate::{Flag, Intent, build_command_positions, build_command_summary,
-    command_at_position, build_supcommand_summaries, build_subcommand_summaries,
-    build_flag_summaries};
+use crate::{ErrorCode, Flag, Intent, build_command_positions,
+    build_command_summary, command_at_position, build_supcommand_summaries,
+    build_subcommand_summaries, build_flag_summaries};
 
 /// Command structure which represents command-line task.
 #[derive(Debug, Clone, PartialEq)]
@@ -12,7 +12,7 @@ pub struct Command {
     version: Option<String>,
     flags: Vec<Flag>,
     commands: Vec<Command>,
-    resolver: Option<fn(Intent) -> Option<usize>>,
+    resolver: Option<fn(Intent) -> Result<usize, ErrorCode>>,
 }
 
 /// Command structure implementation.
@@ -96,7 +96,7 @@ impl Command {
     }
     
     /// Sets resolver function.
-    pub fn with_resolver(mut self, r: fn(Intent) -> Option<usize>) -> Self {
+    pub fn with_resolver(mut self, r: fn(Intent) -> Result<usize, ErrorCode>) -> Self {
         self.resolver = Some(r);
         self
     }
@@ -114,14 +114,20 @@ impl Command {
     }
 
     /// Executes as a command-line application.
-    pub fn perform(self, args: Vec<String>) -> Option<usize> {
-        let command_positions = build_command_positions(&self, &args);
+    pub fn perform(self, args: Vec<String>) -> Result<usize, ErrorCode> {
+        let command_positions = match build_command_positions(&self, &args) {
+            Ok(v) => v,
+            Err(code) => return Err(code),
+        };
         let command = command_at_position(&self, &command_positions);
 
         let command_summary = build_command_summary(&command);
         let supcommand_summaries = build_supcommand_summaries(&self, &command_positions);
         let subcommand_summaries = build_subcommand_summaries(&command);
-        let flag_summaries = build_flag_summaries(&command, &args);
+        let flag_summaries = match build_flag_summaries(&command, &args) {
+            Ok(v) => v,
+            Err(code) => return Err(code),
+        };
 
         let intent = Intent::new(
             args,
@@ -133,7 +139,7 @@ impl Command {
 
         match command.resolver {
             Some(resolver) => resolver(intent),
-            None => panic!("resolver not set"),
+            None => Err(ErrorCode::MissingResolver),
         }
     }
 }
@@ -144,22 +150,22 @@ mod tests {
 
     #[test]
     fn performs_command() {
-        fn resolver0(_: Intent) -> Option<usize> { Some(0) };
+        fn resolver0(_: Intent) -> Result<usize, ErrorCode> { Ok(0) };
         let app = Command::with_name("a")
             .with_resolver(resolver0);
-        assert_eq!(app.perform(vec![]), Some(0));
+        assert_eq!(app.perform(vec![]), Ok(0));
     }
 
     #[test]
     fn performs_subcommand() {
-        fn resolver0(_: Intent) -> Option<usize> { Some(0) };
-        fn resolver1(_: Intent) -> Option<usize> { Some(1) };
+        fn resolver0(_: Intent) -> Result<usize, ErrorCode> { Ok(0) };
+        fn resolver1(_: Intent) -> Result<usize, ErrorCode> { Ok(1) };
         let app = Command::with_name("a")
             .with_subcommand(
                 Command::with_name("b")
                     .with_resolver(resolver1)
             )
             .with_resolver(resolver0);
-        assert_eq!(app.perform(vec!["b".to_string()]), Some(1));
+        assert_eq!(app.perform(vec!["b".to_string()]), Ok(1));
     }
 }

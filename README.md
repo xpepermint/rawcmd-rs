@@ -12,7 +12,7 @@ fn resolver(intent: Intent) -> Option<usize>  {
     intent.subcommands();
 }
 
-Command::with_name("cmd1")
+let app = Command::with_name("cmd1")
     .with_description("Command 1")
     .with_flag(
         Flag::with_name("flag1")
@@ -34,9 +34,13 @@ Command::with_name("cmd1")
     .perform(
         env::args().skip(1).collect(),
     );
+
+match app {
+    Ok(v) => println!("OK: {:?}", v),
+    Err(v) => println!("Err: {:?}", v),
+}
 ```
 
 Notes:
 
-* Add global error handling (parsing args)
 * Add term

@@ -1,7 +1,7 @@
-use crate::{Command, CommandSummary, Flag, FlagSummary};
+use crate::{Command, CommandSummary, ErrorCode, Flag, FlagSummary};
 
 /// Parses arguments and finds command positions in a tree.
-pub fn build_command_positions(app: &Command, args: &Vec<String>) -> Vec<usize> {
+pub fn build_command_positions(app: &Command, args: &Vec<String>) -> Result<Vec<usize>, ErrorCode> {
     let mut args = args.clone();
     args.reverse();
 
@@ -24,12 +24,12 @@ pub fn build_command_positions(app: &Command, args: &Vec<String>) -> Vec<usize> 
                 positions.push(index);
                 break;
             } else if index == size - 1 {
-                panic!("invalid command");
+                return Err(ErrorCode::UnknownCommand);
             }
         }
     }
 
-    positions
+    Ok(positions)
 }
 
 /// Returns command object based on the position in arguments.
@@ -85,7 +85,7 @@ pub fn build_subcommand_summaries(command: &Command) -> Vec<CommandSummary> {
 }
 
 /// Returns flag summary objects for command. 
-pub fn build_flag_summaries(command: &Command, args: &Vec<String>) -> Vec<FlagSummary> {
+pub fn build_flag_summaries(command: &Command, args: &Vec<String>) -> Result<Vec<FlagSummary>, ErrorCode> {
     let mut all = Vec::new();
 
     for (index, arg) in args.into_iter().enumerate() {
@@ -102,13 +102,13 @@ pub fn build_flag_summaries(command: &Command, args: &Vec<String>) -> Vec<FlagSu
         });
         let flag = match flag {
             Some(f) => f,
-            None => panic!("unknown flag"),
+            None => return Err(ErrorCode::UnknownFlag),
         };
 
         let value = if flag.accepts_value() {
             Some(match &args.get(index + 1) {
                 Some(v) => v.to_string(),
-                None => panic!("flag has no value"),
+                None => return Err(ErrorCode::MissingFlagValue),
             })
         } else {
             None
@@ -123,7 +123,7 @@ pub fn build_flag_summaries(command: &Command, args: &Vec<String>) -> Vec<FlagSu
         }
     }
 
-    all
+    Ok(all)
 }
 
 #[cfg(test)]
@@ -139,7 +139,7 @@ mod tests {
             .with_flag(Flag::with_name("ddd").with_alias("d"))
             .with_flag(Flag::with_name("eee"));
         let args = vec!["--aaa".to_string(), "-c".to_string(), "cval".to_string(), "--eee".to_string()];
-        let summaries = build_flag_summaries(&command, &args);
+        let summaries = build_flag_summaries(&command, &args).unwrap();
         let total = summaries.len();
         let provided: Vec<FlagSummary> = summaries.into_iter()
             .filter(|s| s.provided()).collect();

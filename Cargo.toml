@@ -10,3 +10,4 @@ homepage = "https://github.com/xpepermint/rawcmd"
 repository = "https://github.com/xpepermint/rawcmd"
 
 [dependencies]
+rawcmd_utils = { path = "../rawcmd_utils" }

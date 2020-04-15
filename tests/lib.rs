@@ -13,7 +13,7 @@ fn performs_command() {
             Command::with_name("3").with_resolver(|_| Ok(0))
         )
         .with_resolver(|_| Ok(0))
-        .perform(
+        .run_args(
             vec!["2".to_string()],
         );
     assert_eq!(result, Ok(1));

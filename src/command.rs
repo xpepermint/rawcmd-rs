@@ -1,3 +1,4 @@
+use rawcmd_utils::parse_args;
 use crate::{ErrorCode, Flag, Resource, Intent, build_subcommand_positions,
     build_command_summary, subcommand_at_position, build_supcommand_summaries,
     build_subcommand_summaries, build_flag_summaries, build_resource_summaries};
@@ -127,7 +128,12 @@ impl Command {
     }
 
     /// Executes as a command-line application.
-    pub fn perform(self, args: Vec<String>) -> Result<usize, usize> {
+    pub fn run(self) -> Result<usize, usize> {
+        self.run_args(parse_args())
+    }
+
+    /// Executes as a command-line application.
+    pub fn run_args(self, args: Vec<String>) -> Result<usize, usize> {
         let command_positions = match build_subcommand_positions(&self, &args) {
             Ok(v) => v,
             Err(code) => return Err(code),
@@ -167,7 +173,7 @@ mod tests {
         fn resolver0(_: Intent) -> Result<usize, usize> { Ok(0) };
         let app = Command::with_name("a")
             .with_resolver(resolver0);
-        assert_eq!(app.perform(vec![]), Ok(0));
+        assert_eq!(app.run_args(vec![]), Ok(0));
     }
 
     #[test]
@@ -180,6 +186,6 @@ mod tests {
                     .with_resolver(resolver1)
             )
             .with_resolver(resolver0);
-        assert_eq!(app.perform(vec!["b".to_string()]), Ok(1));
+        assert_eq!(app.run_args(vec!["b".to_string()]), Ok(1));
     }
 }

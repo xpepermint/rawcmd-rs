@@ -3,7 +3,6 @@
 Example:
 
 ```rs
-use std::env;
 use rawcmd::{Command, Flag, Intent};
 
 fn resolver(intent: Intent) -> Option<usize>  {
@@ -31,9 +30,7 @@ let app = Command::with_name("cmd1")
             .with_resolver(resolver)
     )
     .with_resolver(|_| { Some(0) })
-    .perform(
-        env::args().skip(1).collect(),
-    );
+    .run();
 
 match app {
     Ok(v) => println!("OK: {:?}", v),

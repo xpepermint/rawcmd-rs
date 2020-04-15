@@ -3,7 +3,7 @@
 pub struct FlagSummary {
     name: String,
     alias: Option<String>,
-    hint: Option<String>,
+    description: Option<String>,
     value: Option<String>,
     default_value: Option<String>,
     accepts_value: bool,
@@ -17,7 +17,7 @@ impl FlagSummary {
     pub fn with_name(
         name: &str,
         alias: Option<String>,
-        hint: Option<String>,
+        description: Option<String>,
         value: Option<String>,
         default_value: Option<String>,
         accepts_value: bool,
@@ -26,7 +26,7 @@ impl FlagSummary {
         Self {
             name: name.to_string(),
             alias,
-            hint,
+            description,
             value,
             default_value,
             accepts_value,
@@ -48,9 +48,9 @@ impl FlagSummary {
         &self.alias
     }
 
-    /// Returns hint.
-    pub fn hint(&self) -> &Option<String> {
-        &self.hint
+    /// Returns description.
+    pub fn description(&self) -> &Option<String> {
+        &self.description
     }
 
     /// Returns value.

@@ -46,8 +46,8 @@ pub fn subcommand_at_position<'a>(app: &'a Command, positions: &Vec<usize>) -> &
 pub fn build_command_summary(command: &Command) -> CommandSummary {
     CommandSummary::with_name(
         command.name().clone().as_str(),
+        command.about().clone(),
         command.description().clone(),
-        command.hint().clone(),
         command.author().clone(),
         command.version().clone(),
     )
@@ -58,7 +58,7 @@ pub fn build_flag_summary(flag: &Flag, provided: bool, value: &Option<String>) -
     FlagSummary::with_name(
         flag.name().clone().as_str(),
         flag.alias().clone(),
-        flag.hint().clone(),
+        flag.description().clone(),
         value.clone(),
         flag.default_value().clone(),
         flag.accepts_value().clone(),
@@ -70,7 +70,7 @@ pub fn build_flag_summary(flag: &Flag, provided: bool, value: &Option<String>) -
 pub fn build_resource_summary(resource: &Resource) -> ResourceSummary {
     ResourceSummary::with_name(
         resource.name().clone().as_str(),
-        resource.hint().clone(),
+        resource.description().clone(),
     )
 }
 

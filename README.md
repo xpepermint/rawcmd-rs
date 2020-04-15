@@ -43,4 +43,5 @@ match app {
 
 Notes:
 
+* Enable "param=val" (with =) -> add `resolve_attributes()`
 * Add term

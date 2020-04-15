@@ -2,7 +2,7 @@
 #[derive(Debug, Clone, PartialEq)]
 pub struct Resource {
     name: String,
-    hint: Option<String>,
+    description: Option<String>,
 }
 
 /// Structure implementation.
@@ -13,9 +13,9 @@ impl Resource {
         &self.name
     }
 
-    /// Returns hint.
-    pub fn hint(&self) -> &Option<String> {
-        &self.hint
+    /// Returns description.
+    pub fn description(&self) -> &Option<String> {
+        &self.description
     }
 }
 
@@ -26,13 +26,13 @@ impl Resource {
     pub fn with_name(name: &str) -> Self {
         Self {
             name: name.to_string(),
-            hint: None,
+            description: None,
         }
     }
 
-    /// Sets hint.
-    pub fn with_hint(mut self, val: &str) -> Self {
-        self.hint = Some(val.to_string());
+    /// Sets description.
+    pub fn with_description(mut self, val: &str) -> Self {
+        self.description = Some(val.to_string());
         self
     }
 }

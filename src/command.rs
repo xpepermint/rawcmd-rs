@@ -6,8 +6,8 @@ use crate::{ErrorCode, Flag, Resource, Intent, build_subcommand_positions,
 #[derive(Debug, Clone, PartialEq)]
 pub struct Command {
     name: String,
+    about: Option<String>,
     description: Option<String>,
-    hint: Option<String>,
     author: Option<String>,
     version: Option<String>,
     flags: Vec<Flag>,
@@ -24,14 +24,14 @@ impl Command {
         &self.name
     }
 
+    /// Returns about.
+    pub fn about(&self) -> &Option<String> {
+        &self.about
+    }
+
     /// Returns description.
     pub fn description(&self) -> &Option<String> {
         &self.description
-    }
-
-    /// Returns hint.
-    pub fn hint(&self) -> &Option<String> {
-        &self.hint
     }
 
     /// Returns author.
@@ -67,15 +67,21 @@ impl Command {
     pub fn with_name(name: &str) -> Self {
         Self {
             name: name.to_string(),
-            description: None,
+            about: None,
             flags: Vec::new(),
             resources: Vec::new(),
             commands: Vec::new(),
             resolver: None,
-            hint: None,
+            description: None,
             author: None,
             version: None,
         }
+    }
+
+    /// Sets about.
+    pub fn with_about(mut self, val: &str) -> Self {
+        self.about = Some(val.to_string());
+        self
     }
 
     /// Sets description.
@@ -84,13 +90,7 @@ impl Command {
         self
     }
 
-    /// Sets hint.
-    pub fn with_hint(mut self, val: &str) -> Self {
-        self.hint = Some(val.to_string());
-        self
-    }
-
-    /// Sets description.
+    /// Sets about.
     pub fn with_author(mut self, val: &str) -> Self {
         self.author = Some(val.to_string());
         self

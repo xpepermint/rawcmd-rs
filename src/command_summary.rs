@@ -2,8 +2,8 @@
 #[derive(Debug, Clone, PartialEq)]
 pub struct CommandSummary {
     name: String,
+    about: Option<String>,
     description: Option<String>,
-    hint: Option<String>,
     author: Option<String>,
     version: Option<String>,
 }
@@ -14,15 +14,15 @@ impl CommandSummary {
     // Returns new instance.
     pub fn with_name(
         name: &str,
+        about: Option<String>,
         description: Option<String>,
-        hint: Option<String>,
         author: Option<String>,
         version: Option<String>,
     ) -> Self {
         Self {
             name: name.to_string(),
+            about,
             description,
-            hint,
             author,
             version,
         }
@@ -37,14 +37,14 @@ impl CommandSummary {
         &self.name
     }
 
+    /// Returns about.
+    pub fn about(&self) -> &Option<String> {
+        &self.about
+    }
+
     /// Returns description.
     pub fn description(&self) -> &Option<String> {
         &self.description
-    }
-
-    /// Returns hint.
-    pub fn hint(&self) -> &Option<String> {
-        &self.hint
     }
 
     /// Returns author.

@@ -3,7 +3,7 @@
 pub struct Flag {
     name: String,
     alias: Option<String>,
-    hint: Option<String>,
+    description: Option<String>,
     default_value: Option<String>,
     accepts_value: bool,
 }
@@ -21,9 +21,9 @@ impl Flag {
         &self.alias
     }
 
-    /// Returns hint.
-    pub fn hint(&self) -> &Option<String> {
-        &self.hint
+    /// Returns description.
+    pub fn description(&self) -> &Option<String> {
+        &self.description
     }
 
     /// Returns default value.
@@ -45,7 +45,7 @@ impl Flag {
         Self {
             name: name.to_string(),
             alias: None,
-            hint: None,
+            description: None,
             default_value: None,
             accepts_value: false,
         }
@@ -57,9 +57,9 @@ impl Flag {
         self
     }
 
-    /// Sets hint.
-    pub fn with_hint(mut self, val: &str) -> Self {
-        self.hint = Some(val.to_string());
+    /// Sets description.
+    pub fn with_description(mut self, val: &str) -> Self {
+        self.description = Some(val.to_string());
         self
     }
 

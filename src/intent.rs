@@ -103,6 +103,14 @@ impl Intent {
         self.flag(name).is_some()
     }
 
+    /// Returns true if flag is present.
+    pub fn has_provided_flag(&self, name: &str) -> bool {
+        match self.flag(name) {
+            Some(f) => f.provided(),
+            None => false,
+        }
+    }
+
     /// Returns true if the executed command has resources.
     pub fn has_resources(&self) -> bool {
         !self.resources.is_empty()

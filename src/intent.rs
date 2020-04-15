@@ -1,4 +1,4 @@
-use crate::{CommandSummary, FlagSummary};
+use crate::{CommandSummary, FlagSummary, ResourceSummary};
 
 /// Intent structure which represents user intent.
 #[derive(Debug, Clone, PartialEq)]
@@ -8,6 +8,7 @@ pub struct Intent {
     supcommands: Vec<CommandSummary>,
     subcommands: Vec<CommandSummary>,
     flags: Vec<FlagSummary>,
+    resources: Vec<ResourceSummary>,
 }
 
 /// Intent structure implementation.
@@ -20,6 +21,7 @@ impl Intent {
         supcommands: Vec<CommandSummary>,
         subcommands: Vec<CommandSummary>,
         flags: Vec<FlagSummary>,
+        resources: Vec<ResourceSummary>,
     ) -> Self {
         Self {
             args,
@@ -27,6 +29,7 @@ impl Intent {
             supcommands,
             subcommands,
             flags,
+            resources
         }
     }
 
@@ -55,14 +58,29 @@ impl Intent {
         &self.flags
     }
 
-    /// Returns summary objects of all flags.
+    /// Returns summary objects of a specific flag.
     pub fn flag(&self, name: &str) -> Option<&FlagSummary> {
         self.flags.iter().find(|f| *f.name() == name )
+    }
+
+    /// Returns summary objects of all resources.
+    pub fn resources(&self) -> &Vec<ResourceSummary> {
+        &self.resources
+    }
+
+    /// Returns summary objects of a specific resource.
+    pub fn resource(&self, name: &str) -> Option<&ResourceSummary> {
+        self.resources.iter().find(|f| *f.name() == name )
     }
 
     /// Returns true if command-line arguments are present.
     pub fn has_args(&self) -> bool {
         !self.args.is_empty()
+    }
+
+    /// Returns true if command-line argument is present.
+    pub fn has_arg(&self, name: &str) -> bool {
+        self.args.iter().any(|a| a == name)
     }
 
     /// Returns true if the executed command has parent commands.
@@ -75,9 +93,24 @@ impl Intent {
         !self.subcommands.is_empty()
     }
 
-    /// Returns true if the executed command has child commands.
+    /// Returns true if the executed command has flags.
     pub fn has_flags(&self) -> bool {
         !self.flags.is_empty()
+    }
+
+    /// Returns true if flag is present.
+    pub fn has_flag(&self, name: &str) -> bool {
+        self.flag(name).is_some()
+    }
+
+    /// Returns true if the executed command has resources.
+    pub fn has_resources(&self) -> bool {
+        !self.resources.is_empty()
+    }
+
+    /// Returns true if resource is present.
+    pub fn has_resource(&self, name: &str) -> bool {
+        self.resource(name).is_some()
     }
 }
 
@@ -85,13 +118,23 @@ impl Intent {
 mod tests {
     use super::*;
 
+    fn intent_with_args(args: Vec<String>) -> Intent {
+        let command: CommandSummary = CommandSummary::with_name("", None, None, None, None);
+        let supcommands: Vec<CommandSummary> = vec![];
+        let subcommands: Vec<CommandSummary> = vec![];
+        let flags: Vec<FlagSummary> = vec![];
+        let resources: Vec<ResourceSummary> = vec![];
+        Intent::new(args, command, supcommands, subcommands, flags, resources)
+    }
+
     fn intent_with_flags(flags: Vec<FlagSummary>) -> Intent {
         let args: Vec<String> = vec![];
         let command: CommandSummary = CommandSummary::with_name("", None, None, None, None);
         let supcommands: Vec<CommandSummary> = vec![];
         let subcommands: Vec<CommandSummary> = vec![];
         let flags: Vec<FlagSummary> = flags;
-        Intent::new(args, command, supcommands, subcommands, flags)
+        let resources: Vec<ResourceSummary> = vec![];
+        Intent::new(args, command, supcommands, subcommands, flags, resources)
     }
 
     #[test]
@@ -102,4 +145,23 @@ mod tests {
         ]);
         assert_eq!(intent.flag("b").unwrap().name(), "b");
     }
+
+    #[test]
+    fn checks_argument_existance() {
+        let intent = intent_with_args(vec![
+            "--b".to_string(), "-c".to_string(),
+        ]);
+        assert_eq!(intent.has_arg("-c"), true);
+        assert_eq!(intent.has_arg("b"), false);
+    }
+
+    #[test]
+    fn checks_flag_existance() {
+        let intent = intent_with_flags(vec![
+            FlagSummary::with_name("b", None, None, None, None, false, false),
+        ]);
+        assert_eq!(intent.has_flag("b"), true);
+        assert_eq!(intent.has_flag("x"), false);
+    }
+
 }

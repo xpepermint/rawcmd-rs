@@ -1,6 +1,6 @@
-use crate::{ErrorCode, Flag, Intent, build_command_positions,
-    build_command_summary, command_at_position, build_supcommand_summaries,
-    build_subcommand_summaries, build_flag_summaries};
+use crate::{ErrorCode, Flag, Resource, Intent, build_subcommand_positions,
+    build_command_summary, subcommand_at_position, build_supcommand_summaries,
+    build_subcommand_summaries, build_flag_summaries, build_resource_summaries};
 
 /// Command structure which represents command-line task.
 #[derive(Debug, Clone, PartialEq)]
@@ -11,6 +11,7 @@ pub struct Command {
     author: Option<String>,
     version: Option<String>,
     flags: Vec<Flag>,
+    resources: Vec<Resource>,
     commands: Vec<Command>,
     resolver: Option<fn(Intent) -> Result<usize, usize>>,
 }
@@ -48,6 +49,11 @@ impl Command {
         &self.flags
     }
 
+    /// Returns resources.
+    pub fn resources(&self) -> &Vec<Resource> {
+        &self.resources
+    }
+
     /// Returns commands.
     pub fn commands(&self) -> &Vec<Command> {
         &self.commands
@@ -63,6 +69,7 @@ impl Command {
             name: name.to_string(),
             description: None,
             flags: Vec::new(),
+            resources: Vec::new(),
             commands: Vec::new(),
             resolver: None,
             hint: None,
@@ -107,6 +114,12 @@ impl Command {
         self
     }
 
+    /// Adds resource.
+    pub fn with_resource(mut self, resource: Resource) -> Self {
+        self.resources.push(resource);
+        self
+    }
+
     /// Adds subcommand.
     pub fn with_subcommand(mut self, command: Command) -> Self {
         self.commands.push(command);
@@ -115,12 +128,11 @@ impl Command {
 
     /// Executes as a command-line application.
     pub fn perform(self, args: Vec<String>) -> Result<usize, usize> {
-        let command_positions = match build_command_positions(&self, &args) {
+        let command_positions = match build_subcommand_positions(&self, &args) {
             Ok(v) => v,
             Err(code) => return Err(code),
         };
-        let command = command_at_position(&self, &command_positions);
-
+        let command = subcommand_at_position(&self, &command_positions);
         let command_summary = build_command_summary(&command);
         let supcommand_summaries = build_supcommand_summaries(&self, &command_positions);
         let subcommand_summaries = build_subcommand_summaries(&command);
@@ -128,6 +140,7 @@ impl Command {
             Ok(v) => v,
             Err(code) => return Err(code),
         };
+        let resource_summaries = build_resource_summaries(&command);
 
         let intent = Intent::new(
             args,
@@ -135,6 +148,7 @@ impl Command {
             supcommand_summaries,
             subcommand_summaries,
             flag_summaries,
+            resource_summaries,
         );
 
         match command.resolver {

@@ -1,7 +1,8 @@
-use crate::{Command, CommandSummary, ErrorCode, Flag, FlagSummary};
+use crate::{Command, CommandSummary, ErrorCode, Flag, FlagSummary, Resource,
+    ResourceSummary};
 
 /// Parses arguments and finds command positions in a tree.
-pub fn build_command_positions(app: &Command, args: &Vec<String>) -> Result<Vec<usize>, usize> {
+pub fn build_subcommand_positions(app: &Command, args: &Vec<String>) -> Result<Vec<usize>, usize> {
     let mut args = args.clone();
     args.reverse();
 
@@ -33,7 +34,7 @@ pub fn build_command_positions(app: &Command, args: &Vec<String>) -> Result<Vec<
 }
 
 /// Returns command object based on the position in arguments.
-pub fn command_at_position<'a>(app: &'a Command, positions: &Vec<usize>) -> &'a Command {
+pub fn subcommand_at_position<'a>(app: &'a Command, positions: &Vec<usize>) -> &'a Command {
     let mut command = app;
     for position in positions.clone().into_iter() {
         command = &command.commands().get(position).unwrap();
@@ -65,28 +66,41 @@ pub fn build_flag_summary(flag: &Flag, provided: bool, value: &Option<String>) -
     )
 }
 
+/// Returns resource summary.
+pub fn build_resource_summary(resource: &Resource) -> ResourceSummary {
+    ResourceSummary::with_name(
+        resource.name().clone().as_str(),
+        resource.hint().clone(),
+    )
+}
+
 /// Returns summary objects of parent commands. 
 pub fn build_supcommand_summaries(app: &Command, positions: &Vec<usize>) -> Vec<CommandSummary> {
-    let mut all = Vec::new();
-    for _ in positions.into_iter() {
-        let command = command_at_position(&app, &positions);
-        all.push(build_command_summary(command));
+    let mut items = Vec::new();
+    items.push(build_command_summary(&app));
+
+    let mut command = app;
+    for position in positions.clone().into_iter() {
+        command = &command.commands().get(position).unwrap();
+        items.push(build_command_summary(&command));
     }
-    all
+    items.pop();
+    items
 }
 
 /// Returns summary objects of child commands. 
 pub fn build_subcommand_summaries(command: &Command) -> Vec<CommandSummary> {
-    let mut all = Vec::new();
+    let mut items = Vec::new();
     for subcommand in command.commands().into_iter() {
-        all.push(build_command_summary(subcommand));
+        items.push(build_command_summary(subcommand));
     }
-    all
+    items.sort_by(|a, b| a.name().to_lowercase().cmp(&b.name().to_lowercase()));
+    items
 }
 
 /// Returns flag summary objects for command. 
 pub fn build_flag_summaries(command: &Command, args: &Vec<String>) -> Result<Vec<FlagSummary>, usize> {
-    let mut all = Vec::new();
+    let mut items = Vec::new();
 
     for (index, arg) in args.into_iter().enumerate() {
 
@@ -113,22 +127,62 @@ pub fn build_flag_summaries(command: &Command, args: &Vec<String>) -> Result<Vec
         } else {
             None
         };
-        all.push(build_flag_summary(&flag, true, &value));
+        items.push(build_flag_summary(&flag, true, &value));
     }
  
     for flag in command.flags().into_iter() {
-        let exists = &all.iter().any(|f| f.name() == flag.name());
+        let exists = &items.iter().any(|f| f.name() == flag.name());
         if !exists {
-            all.push(build_flag_summary(flag, false, &None));
+            items.push(build_flag_summary(flag, false, &None));
         }
     }
 
-    Ok(all)
+    items.sort_by(|a, b| a.name().to_lowercase().cmp(&b.name().to_lowercase()));
+    Ok(items)
+}
+
+/// Returns resource summary objects for command. 
+pub fn build_resource_summaries(command: &Command) -> Vec<ResourceSummary> {
+    command.resources().iter().map(|r| {
+        build_resource_summary(r)
+    }).collect()
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn builds_command_positions() {
+        let command = Command::with_name("000")
+            .with_subcommand(
+                Command::with_name("aaa")
+                    .with_subcommand(Command::with_name("bbb"))
+                    .with_subcommand(Command::with_name("ccc"))
+        );
+        let args = vec!["aaa".to_string(), "ccc".to_string()];
+        let positions = build_subcommand_positions(&command, &args).unwrap();
+        let total = positions.len();
+        assert_eq!(total, 2);
+        assert_eq!(positions, [0, 1]);
+    }
+
+    #[test]
+    fn builds_supcommand_summaries() {
+        let command = Command::with_name("000")
+            .with_subcommand(
+                Command::with_name("aaa")
+                    .with_subcommand(
+                        Command::with_name("bbb")
+                    )
+            );
+        let args = vec!["aaa".to_string(), "bbb".to_string()];
+        let positions = build_subcommand_positions(&command, &args).unwrap();
+        let summaries = build_supcommand_summaries(&command, &positions);
+        let names: Vec<String> = summaries.iter()
+            .map(|s| s.name().clone()).collect();
+        assert_eq!(names, ["000", "aaa"]);
+    }
 
     #[test]
     fn builds_flag_summaries() {

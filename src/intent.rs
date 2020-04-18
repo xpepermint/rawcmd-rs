@@ -59,8 +59,9 @@ impl Intent {
     }
 
     /// Returns summary objects of a specific flag.
-    pub fn flag(&self, name: &str) -> Option<&FlagSummary> {
-        self.flags.iter().find(|f| *f.name() == name )
+    pub fn flag<S: Into<String>>(&self, name: S) -> Option<&FlagSummary> {
+        let name = name.into();
+        self.flags.iter().find(|f| *f.name() == name)
     }
 
     /// Returns summary objects of all resources.
@@ -69,8 +70,9 @@ impl Intent {
     }
 
     /// Returns summary objects of a specific resource.
-    pub fn resource(&self, name: &str) -> Option<&ResourceSummary> {
-        self.resources.iter().find(|f| *f.name() == name )
+    pub fn resource<S: Into<String>>(&self, name: S) -> Option<&ResourceSummary> {
+        let name = name.into();
+        self.resources.iter().find(|f| *f.name() == name)
     }
 
     /// Returns true if command-line arguments are present.
@@ -79,8 +81,9 @@ impl Intent {
     }
 
     /// Returns true if command-line argument is present.
-    pub fn has_arg(&self, name: &str) -> bool {
-        self.args.iter().any(|a| a == name)
+    pub fn has_arg<S: Into<String>>(&self, name: S) -> bool {
+        let name = name.into();
+        self.args.iter().any(|a| *a == name)
     }
 
     /// Returns true if the executed command has parent commands.
@@ -99,12 +102,13 @@ impl Intent {
     }
 
     /// Returns true if flag is present.
-    pub fn has_flag(&self, name: &str) -> bool {
-        self.flag(name).is_some()
+    pub fn has_flag<S: Into<String>>(&self, name: S) -> bool {
+        self.flag(name.into()).is_some()
     }
 
     /// Returns true if flag is present.
-    pub fn has_provided_flag(&self, name: &str) -> bool {
+    pub fn has_provided_flag<S: Into<String>>(&self, name: S) -> bool {
+        let name = name.into();
         match self.flag(name) {
             Some(f) => f.provided(),
             None => false,
@@ -117,8 +121,8 @@ impl Intent {
     }
 
     /// Returns true if resource is present.
-    pub fn has_resource(&self, name: &str) -> bool {
-        self.resource(name).is_some()
+    pub fn has_resource<S: Into<String>>(&self, name: S) -> bool {
+        self.resource(name.into()).is_some()
     }
 }
 

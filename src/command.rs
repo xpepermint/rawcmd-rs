@@ -1,7 +1,7 @@
-use rawcmd_utils::parse_args;
 use crate::{ErrorCode, Flag, Resource, Intent, build_subcommand_positions,
     build_command_summary, subcommand_at_position, build_supcommand_summaries,
-    build_subcommand_summaries, build_flag_summaries, build_resource_summaries};
+    build_subcommand_summaries, build_flag_summaries, build_resource_summaries,
+    parse_args};
 
 /// Command structure which represents command-line task.
 #[derive(Debug, Clone, PartialEq)]
@@ -65,9 +65,9 @@ impl Command {
 impl Command {
 
     /// Returns new instance.
-    pub fn with_name(name: &str) -> Self {
+    pub fn with_name<S: Into<String>>(name: S) -> Self {
         Self {
-            name: name.to_string(),
+            name: name.into(),
             about: None,
             flags: Vec::new(),
             resources: Vec::new(),
@@ -80,26 +80,26 @@ impl Command {
     }
 
     /// Sets about.
-    pub fn with_about(mut self, val: &str) -> Self {
-        self.about = Some(val.to_string());
+    pub fn with_about<S: Into<String>>(mut self, val: S) -> Self {
+        self.about = Some(val.into());
         self
     }
 
     /// Sets description.
-    pub fn with_description(mut self, val: &str) -> Self {
-        self.description = Some(val.to_string());
+    pub fn with_description<S: Into<String>>(mut self, val: S) -> Self {
+        self.description = Some(val.into());
         self
     }
 
     /// Sets about.
-    pub fn with_author(mut self, val: &str) -> Self {
-        self.author = Some(val.to_string());
+    pub fn with_author<S: Into<String>>(mut self, val: S) -> Self {
+        self.author = Some(val.into());
         self
     }
 
     /// Sets version.
-    pub fn with_version(mut self, val: &str) -> Self {
-        self.version = Some(val.to_string());
+    pub fn with_version<S: Into<String>>(mut self, val: S) -> Self {
+        self.version = Some(val.into());
         self
     }
     
@@ -133,7 +133,8 @@ impl Command {
     }
 
     /// Executes as a command-line application.
-    pub fn run_args(self, args: Vec<String>) -> Result<usize, usize> {
+    pub fn run_args<S: Into<String>>(self, args: Vec<S>) -> Result<usize, usize> {
+        let args = args.into_iter().map(|s| s.into()).collect();
         let command_positions = match build_subcommand_positions(&self, &args) {
             Ok(v) => v,
             Err(code) => return Err(code),
@@ -173,7 +174,7 @@ mod tests {
         fn resolver0(_: Intent) -> Result<usize, usize> { Ok(0) };
         let app = Command::with_name("a")
             .with_resolver(resolver0);
-        assert_eq!(app.run_args(vec![]), Ok(0));
+        assert_eq!(app.run_args(vec![""]), Ok(0));
     }
 
     #[test]

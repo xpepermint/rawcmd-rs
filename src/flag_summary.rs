@@ -14,8 +14,10 @@ pub struct FlagSummary {
 impl FlagSummary {
 
     // Returns new instance.
-    pub fn with_name(
-        name: &str,
+    pub fn with_name<
+        S: Into<String>,
+    >(
+        name: S,
         alias: Option<String>,
         description: Option<String>,
         value: Option<String>,
@@ -24,7 +26,7 @@ impl FlagSummary {
         provided: bool,
     ) -> Self {
         Self {
-            name: name.to_string(),
+            name: name.into(),
             alias,
             description,
             value,

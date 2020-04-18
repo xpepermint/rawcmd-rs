@@ -23,16 +23,16 @@ impl Resource {
 impl Resource {
 
     // Returns new instance.
-    pub fn with_name(name: &str) -> Self {
+    pub fn with_name<S: Into<String>>(name: S) -> Self {
         Self {
-            name: name.to_string(),
+            name: name.into(),
             description: None,
         }
     }
 
     /// Sets description.
-    pub fn with_description(mut self, val: &str) -> Self {
-        self.description = Some(val.to_string());
+    pub fn with_description<S: Into<String>>(mut self, val: S) -> Self {
+        self.description = Some(val.into());
         self
     }
 }

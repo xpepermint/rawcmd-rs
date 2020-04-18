@@ -1,6 +1,6 @@
 > Command-line application framework.
 
-Example:
+## Example
 
 ```rs
 use rawcmd::{Command, Flag, Intent};
@@ -38,7 +38,6 @@ match app {
 }
 ```
 
-Notes:
+## TO-DO
 
-* Enable "param=val" (with =) -> add `resolve_attributes()`
-* Add term
+* Support command inputs (e.g. `cli command <input0> <input1>`).

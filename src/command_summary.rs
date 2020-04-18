@@ -12,15 +12,17 @@ pub struct CommandSummary {
 impl CommandSummary {
 
     // Returns new instance.
-    pub fn with_name(
-        name: &str,
+    pub fn with_name<
+        S: Into<String>,
+    >(
+        name: S,
         about: Option<String>,
         description: Option<String>,
         author: Option<String>,
         version: Option<String>,
     ) -> Self {
         Self {
-            name: name.to_string(),
+            name: name.into(),
             about,
             description,
             author,

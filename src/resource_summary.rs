@@ -9,12 +9,14 @@ pub struct ResourceSummary {
 impl ResourceSummary {
 
     // Returns new instance.
-    pub fn with_name(
-        name: &str,
+    pub fn with_name<
+        S: Into<String>,
+    >(
+        name: S,
         description: Option<String>,
     ) -> Self {
         Self {
-            name: name.to_string(),
+            name: name.into(),
             description,
         }
     }

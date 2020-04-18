@@ -1,5 +1,19 @@
+use std::env;
 use crate::{Command, CommandSummary, ErrorCode, Flag, FlagSummary, Resource,
     ResourceSummary};
+
+/// Parses command-line arguments.
+pub fn parse_args() -> Vec<String> {
+    let args = env::args().skip(1).collect();
+    split_equal_args(&args)
+}
+
+/// Parses command-line arguments.
+pub fn split_equal_args(args: &Vec<String>) -> Vec<String> {
+    let items: Vec<Vec<String>> = args.into_iter().map(|a| a.splitn(2, '=').map(|s| s.to_string()).collect()).collect();
+    let items: Vec<String> = items.iter().flat_map(|tup| tup.iter()).cloned().collect();
+    items
+}
 
 /// Parses arguments and finds command positions in a tree.
 pub fn build_subcommand_positions(app: &Command, args: &Vec<String>) -> Result<Vec<usize>, usize> {
@@ -151,6 +165,14 @@ pub fn build_resource_summaries(command: &Command) -> Vec<ResourceSummary> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn splits_equal_args() {
+        assert_eq!(
+            split_equal_args(&vec!["aa", "bb=11", "--cc=22", "-d=33"].iter().map(|s| s.to_string()).collect()),
+            vec!["aa", "bb", "11", "--cc", "22", "-d", "33"],
+        );
+    }
 
     #[test]
     fn builds_command_positions() {

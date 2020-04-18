@@ -1,13 +1,10 @@
 [package]
 name = "rawcmd"
-description = "Command-line colors and other styles."
+description = "Command-line framework."
 license = "MIT"
-version = "0.2.2"
+version = "0.2.3"
 authors = ["Kristijan Sedlak <xpepermint@gmail.com>"]
 edition = "2018"
 documentation = "https://github.com/xpepermint/rawcmd"
 homepage = "https://github.com/xpepermint/rawcmd"
 repository = "https://github.com/xpepermint/rawcmd"
-
-[dependencies]
-rawcmd_utils = { path = "../rawcmd_utils" }

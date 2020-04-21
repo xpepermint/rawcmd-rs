@@ -46,7 +46,7 @@ command.with_resolver(&resolver)
 
 // struct with Resolver trait
 use rawcmd::Resolver;
-struct Foo {};
+struct Foo {}
 impl Resolver for Foo {
     fn resolve(&self, _: Intent) -> Result<usize, usize> { Ok(3) }
 }

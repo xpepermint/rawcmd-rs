@@ -1,6 +1,6 @@
 [package]
 name = "rawcmd"
-description = "Command-line framework."
+description = "Command-line application framework."
 license = "MIT"
 version = "0.3.2"
 authors = ["Kristijan Sedlak <xpepermint@gmail.com>"]

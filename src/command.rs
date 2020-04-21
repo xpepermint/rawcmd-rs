@@ -4,7 +4,7 @@ use crate::{ErrorCode, Resolver, Flag, Resource, Intent, build_subcommand_positi
     parse_args};
 
 /// Command structure which represents command-line task.
-pub struct Command<'a> {
+pub struct Command {
     name: String,
     about: Option<String>,
     description: Option<String>,
@@ -12,12 +12,12 @@ pub struct Command<'a> {
     version: Option<String>,
     flags: Vec<Flag>,
     resources: Vec<Resource>,
-    commands: Vec<Command<'a>>,
-    resolver: Option<&'a dyn Resolver>,
+    commands: Vec<Command>,
+    resolver: Option<&'static dyn Resolver>,
 }
 
 /// Command structure implementation.
-impl <'a> Command<'a> {
+impl Command {
 
     /// Returns name.
     pub fn name(&self) -> &String {
@@ -61,7 +61,7 @@ impl <'a> Command<'a> {
 }
 
 /// Command structure implementation.
-impl <'a> Command<'a> {
+impl Command {
 
     /// Returns new instance.
     pub fn with_name<S: Into<String>>(name: S) -> Self {
@@ -103,7 +103,7 @@ impl <'a> Command<'a> {
     }
     
     /// Sets resolver function.
-    pub fn with_resolver(mut self, resolver: &'a dyn Resolver) -> Self {
+    pub fn with_resolver(mut self, resolver: &'static dyn Resolver) -> Self {
         self.resolver = Some(resolver);
         self
     }
@@ -121,7 +121,7 @@ impl <'a> Command<'a> {
     }
 
     /// Adds subcommand.
-    pub fn with_subcommand(mut self, command: Command<'a>) -> Self {
+    pub fn with_subcommand(mut self, command: Command) -> Self {
         self.commands.push(command);
         self
     }

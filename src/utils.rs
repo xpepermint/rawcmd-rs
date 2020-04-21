@@ -48,7 +48,7 @@ pub fn build_subcommand_positions(app: &Command, args: &Vec<String>) -> Result<V
 }
 
 /// Returns command object based on the position in arguments.
-pub fn subcommand_at_position<'a>(app: &'a Command, positions: &Vec<usize>) -> &'a Command {
+pub fn subcommand_at_position<'a>(app: &'a Command<'a>, positions: &Vec<usize>) -> &'a Command<'a> {
     let mut command = app;
     for position in positions.clone().into_iter() {
         command = &command.commands().get(position).unwrap();

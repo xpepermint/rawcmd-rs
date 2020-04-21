@@ -22,9 +22,9 @@ let app = Command::with_name("foo")
                     .with_alias("f2")
                     .with_description("Flag 2")
             )
-            .with_resolver(&|_| { Ok(2) })
+            .with_resolver(|_| Ok(2))
     )
-    .with_resolver(&|_| { Ok(3) })
+    .with_resolver(|_| Ok(3))
     .run();
 
 match app {
@@ -33,23 +33,15 @@ match app {
 }
 ```
 
-The function `with_resolver` accepts different resolver types:
+The function `with_resolver` accepts closures and function pointers:
 
 ```rs
 // closure
-command.with_resolver(&|_| { Ok(1) })
+command.with_resolver(|_| Ok(1))
 
 // function pointer
 fn resolver(_: Intent) -> Result<usize, usize> { Ok(2) }
 command.with_resolver(&resolver)
-
-// struct with Resolver trait
-use rawcmd::Resolver;
-struct Foo {}
-impl Resolver for Foo {
-    fn resolve(&self, _: Intent) -> Result<usize, usize> { Ok(3) }
-}
-command.with_resolver(&Foo{});
 ```
 
 ## TO-DO

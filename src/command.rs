@@ -4,7 +4,7 @@ use crate::{ErrorCode, Resolver, Flag, Resource, Intent, build_subcommand_positi
     parse_args};
 
 /// Command structure which represents command-line task.
-pub struct Command<'a> {
+pub struct Command {
     name: String,
     about: Option<String>,
     description: Option<String>,
@@ -12,12 +12,12 @@ pub struct Command<'a> {
     version: Option<String>,
     flags: Vec<Flag>,
     resources: Vec<Resource>,
-    commands: Vec<Command<'a>>,
-    resolver: Option<&'a dyn Resolver>,
+    commands: Vec<Command>,
+    resolver: Option<Resolver>,
 }
 
 /// Command structure implementation.
-impl <'a> Command<'a> {
+impl Command {
 
     /// Returns name.
     pub fn name(&self) -> &String {
@@ -61,7 +61,7 @@ impl <'a> Command<'a> {
 }
 
 /// Command structure implementation.
-impl <'a> Command<'a> {
+impl Command {
 
     /// Returns new instance.
     pub fn with_name<S: Into<String>>(name: S) -> Self {
@@ -103,7 +103,7 @@ impl <'a> Command<'a> {
     }
     
     /// Sets resolver function.
-    pub fn with_resolver(mut self, resolver: &'a dyn Resolver) -> Self {
+    pub fn with_resolver(mut self, resolver: Resolver) -> Self {
         self.resolver = Some(resolver);
         self
     }
@@ -121,7 +121,7 @@ impl <'a> Command<'a> {
     }
 
     /// Adds subcommand.
-    pub fn with_subcommand(mut self, command: Command<'a>) -> Self {
+    pub fn with_subcommand(mut self, command: Command) -> Self {
         self.commands.push(command);
         self
     }
@@ -157,11 +157,10 @@ impl <'a> Command<'a> {
             resource_summaries,
         );
 
-        let resolver = match &command.resolver {
-            Some(resolver) => resolver,
+        match &command.resolver {
+            Some(resolver) => resolver(intent),
             None => return Err(ErrorCode::MissingResolver as usize),
-        };
-        resolver.resolve(intent)
+        }
     }
 }
 
@@ -171,17 +170,11 @@ mod tests {
 
     #[test]
     fn performs_command() {
-        struct Foo;
-        impl Resolver for Foo {
-            fn resolve(&self, _: Intent) -> Result<usize, usize> { Ok(1) }
-        }
-        fn resolver(_: Intent) -> Result<usize, usize> { Ok(2) };
-        let app = Command::with_name("a").with_resolver(&Foo{});
+        fn resolver(_: Intent) -> Result<usize, usize> { Ok(1) };
+        let app = Command::with_name("a").with_resolver(resolver);
         assert_eq!(app.run_args(vec![""]), Ok(1));
-        let app = Command::with_name("a").with_resolver(&resolver);
+        let app = Command::with_name("a").with_resolver(|_| { Ok(2) });
         assert_eq!(app.run_args(vec![""]), Ok(2));
-        let app = Command::with_name("a").with_resolver(&|_| { Ok(3) });
-        assert_eq!(app.run_args(vec![""]), Ok(3));
     }
 
     #[test]
@@ -189,8 +182,8 @@ mod tests {
         fn resolver0(_: Intent) -> Result<usize, usize> { Ok(1) };
         fn resolver1(_: Intent) -> Result<usize, usize> { Ok(2) };
         let app = Command::with_name("a")
-            .with_subcommand(Command::with_name("b").with_resolver(&resolver0))
-            .with_resolver(&resolver1);
+            .with_subcommand(Command::with_name("b").with_resolver(resolver0))
+            .with_resolver(resolver1);
         assert_eq!(app.run_args(vec!["b".to_string()]), Ok(1));
     }
 }

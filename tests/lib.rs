@@ -1,4 +1,4 @@
-use rawcmd::{Command, Resolver, Intent};
+use rawcmd::{Command, Intent};
 
 #[test]
 fn performs_command() {

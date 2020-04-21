@@ -1,11 +1,10 @@
-use crate::{ErrorCode, Flag, Resource, Intent, build_subcommand_positions,
+use crate::{ErrorCode, Resolver, Flag, Resource, Intent, build_subcommand_positions,
     build_command_summary, subcommand_at_position, build_supcommand_summaries,
     build_subcommand_summaries, build_flag_summaries, build_resource_summaries,
     parse_args};
 
 /// Command structure which represents command-line task.
-#[derive(Debug, Clone, PartialEq)]
-pub struct Command {
+pub struct Command<'a> {
     name: String,
     about: Option<String>,
     description: Option<String>,
@@ -13,12 +12,12 @@ pub struct Command {
     version: Option<String>,
     flags: Vec<Flag>,
     resources: Vec<Resource>,
-    commands: Vec<Command>,
-    resolver: Option<fn(Intent) -> Result<usize, usize>>,
+    commands: Vec<Command<'a>>,
+    resolver: Option<&'a dyn Resolver>,
 }
 
 /// Command structure implementation.
-impl Command {
+impl <'a> Command<'a> {
 
     /// Returns name.
     pub fn name(&self) -> &String {
@@ -62,7 +61,7 @@ impl Command {
 }
 
 /// Command structure implementation.
-impl Command {
+impl <'a> Command<'a> {
 
     /// Returns new instance.
     pub fn with_name<S: Into<String>>(name: S) -> Self {
@@ -104,8 +103,8 @@ impl Command {
     }
     
     /// Sets resolver function.
-    pub fn with_resolver(mut self, r: fn(Intent) -> Result<usize, usize>) -> Self {
-        self.resolver = Some(r);
+    pub fn with_resolver(mut self, resolver: &'a dyn Resolver) -> Self {
+        self.resolver = Some(resolver);
         self
     }
 
@@ -122,7 +121,7 @@ impl Command {
     }
 
     /// Adds subcommand.
-    pub fn with_subcommand(mut self, command: Command) -> Self {
+    pub fn with_subcommand(mut self, command: Command<'a>) -> Self {
         self.commands.push(command);
         self
     }
@@ -158,10 +157,11 @@ impl Command {
             resource_summaries,
         );
 
-        match command.resolver {
-            Some(resolver) => resolver(intent),
-            None => Err(ErrorCode::MissingResolver as usize),
-        }
+        let resolver = match &command.resolver {
+            Some(resolver) => resolver,
+            None => return Err(ErrorCode::MissingResolver as usize),
+        };
+        resolver.resolve(intent)
     }
 }
 
@@ -171,22 +171,26 @@ mod tests {
 
     #[test]
     fn performs_command() {
-        fn resolver0(_: Intent) -> Result<usize, usize> { Ok(0) };
-        let app = Command::with_name("a")
-            .with_resolver(resolver0);
-        assert_eq!(app.run_args(vec![""]), Ok(0));
+        struct Foo;
+        impl Resolver for Foo {
+            fn resolve(&self, _: Intent) -> Result<usize, usize> { Ok(1) }
+        }
+        fn resolver(_: Intent) -> Result<usize, usize> { Ok(2) };
+        let app = Command::with_name("a").with_resolver(&Foo{});
+        assert_eq!(app.run_args(vec![""]), Ok(1));
+        let app = Command::with_name("a").with_resolver(&resolver);
+        assert_eq!(app.run_args(vec![""]), Ok(2));
+        let app = Command::with_name("a").with_resolver(&|_| { Ok(3) });
+        assert_eq!(app.run_args(vec![""]), Ok(3));
     }
 
     #[test]
     fn performs_subcommand() {
-        fn resolver0(_: Intent) -> Result<usize, usize> { Ok(0) };
-        fn resolver1(_: Intent) -> Result<usize, usize> { Ok(1) };
+        fn resolver0(_: Intent) -> Result<usize, usize> { Ok(1) };
+        fn resolver1(_: Intent) -> Result<usize, usize> { Ok(2) };
         let app = Command::with_name("a")
-            .with_subcommand(
-                Command::with_name("b")
-                    .with_resolver(resolver1)
-            )
-            .with_resolver(resolver0);
+            .with_subcommand(Command::with_name("b").with_resolver(&resolver0))
+            .with_resolver(&resolver1);
         assert_eq!(app.run_args(vec!["b".to_string()]), Ok(1));
     }
 }

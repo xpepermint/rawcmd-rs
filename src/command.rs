@@ -1,4 +1,4 @@
-use crate::{ErrorCode, Resolver, Flag, Resource, Intent, build_subcommand_positions,
+use crate::{ErrorCode, CommandResolver, Flag, Resource, Intent, build_subcommand_positions,
     build_command_summary, subcommand_at_position, build_supcommand_summaries,
     build_subcommand_summaries, build_flag_summaries, build_resource_summaries,
     parse_args};
@@ -13,7 +13,7 @@ pub struct Command {
     flags: Vec<Flag>,
     resources: Vec<Resource>,
     commands: Vec<Command>,
-    resolver: Option<Resolver>,
+    resolver: Option<CommandResolver>,
 }
 
 /// Command structure implementation.
@@ -103,7 +103,7 @@ impl Command {
     }
     
     /// Sets resolver function.
-    pub fn with_resolver(mut self, resolver: Resolver) -> Self {
+    pub fn with_resolver(mut self, resolver: CommandResolver) -> Self {
         self.resolver = Some(resolver);
         self
     }
@@ -134,18 +134,12 @@ impl Command {
     /// Executes as a command-line application.
     pub fn run_args<S: Into<String>>(self, args: Vec<S>) -> Result<usize, usize> {
         let args = args.into_iter().map(|s| s.into()).collect();
-        let command_positions = match build_subcommand_positions(&self, &args) {
-            Ok(v) => v,
-            Err(code) => return Err(code),
-        };
+        let command_positions = build_subcommand_positions(&self, &args)?;
         let command = subcommand_at_position(&self, &command_positions);
         let command_summary = build_command_summary(&command);
         let supcommand_summaries = build_supcommand_summaries(&self, &command_positions);
         let subcommand_summaries = build_subcommand_summaries(&command);
-        let flag_summaries = match build_flag_summaries(&command, &args) {
-            Ok(v) => v,
-            Err(code) => return Err(code),
-        };
+        let flag_summaries = build_flag_summaries(&command, &args)?;
         let resource_summaries = build_resource_summaries(&command);
 
         let intent = Intent::new(
@@ -169,7 +163,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn performs_command() {
+    fn resolves_command() {
         fn resolver(_: Intent) -> Result<usize, usize> { Ok(1) };
         let app = Command::with_name("a").with_resolver(resolver);
         assert_eq!(app.run_args(vec![""]), Ok(1));
@@ -178,12 +172,32 @@ mod tests {
     }
 
     #[test]
-    fn performs_subcommand() {
+    fn resolves_subcommand() {
         fn resolver0(_: Intent) -> Result<usize, usize> { Ok(1) };
         fn resolver1(_: Intent) -> Result<usize, usize> { Ok(2) };
         let app = Command::with_name("a")
             .with_subcommand(Command::with_name("b").with_resolver(resolver0))
             .with_resolver(resolver1);
-        assert_eq!(app.run_args(vec!["b".to_string()]), Ok(1));
+        assert_eq!(app.run_args(vec!["b"]), Ok(1));
+    }
+
+    #[test]
+    fn resolves_flag() {
+        fn foo(_: Option<String>) -> Result<Option<String>, usize> {
+            Ok(Some(String::from("-")))
+        };
+        fn bar(_: Option<String>) -> Result<Option<String>, usize> {
+            Ok(Some(String::from("--")))
+        };
+        fn resolver(i: Intent) -> Result<usize, usize> {
+            let foo = i.flag("foo").unwrap().value().as_ref().unwrap();
+            let bar = i.flag("bar").unwrap().value().as_ref().unwrap();
+            Ok(format!("{}{}", foo, bar).len())
+        };
+        let app = Command::with_name("a")
+            .with_flag(Flag::with_name("foo").with_resolver(foo))
+            .with_flag(Flag::with_name("bar").with_resolver(bar).accept_value())
+            .with_resolver(resolver);
+        assert_eq!(app.run_args(vec!["a", "--foo", "--bar", ""]), Ok(3));
     }
 }

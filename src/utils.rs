@@ -124,23 +124,26 @@ pub fn build_flag_summaries(command: &Command, args: &Vec<String>) -> Result<Vec
             break;
         }
 
-        let flag = command.flags().iter().find(|&f| {
+        let flag = match command.flags().iter().find(|&f| {
             *arg == format!("{}{}", "--", &f.name())
             || f.alias().is_some() && *arg == format!("{}{}", "-", f.alias().as_ref().unwrap())
-        });
-        let flag = match flag {
+        }) {
             Some(f) => f,
             None => return Err(ErrorCode::UnknownFlag as usize),
         };
 
-        let value = if flag.accepts_value() {
-            Some(match &args.get(index + 1) {
-                Some(v) => v.to_string(),
+        let value = match flag.accepts_value() {
+            true => Some(match &args.get(index + 1) {
+                Some(value) => value.to_string(),
                 None => return Err(ErrorCode::MissingFlagValue as usize),
-            })
-        } else {
-            None
+            }),
+            false => None,
         };
+        let value = match flag.resolver() {
+            Some(resolve) => resolve(value)?,
+            None => value,
+        };
+
         items.push(build_flag_summary(&flag, true, &value));
     }
  
@@ -150,7 +153,6 @@ pub fn build_flag_summaries(command: &Command, args: &Vec<String>) -> Result<Vec
             items.push(build_flag_summary(flag, false, &None));
         }
     }
-
     items.sort_by(|a, b| a.name().to_lowercase().cmp(&b.name().to_lowercase()));
     Ok(items)
 }

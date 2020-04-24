@@ -198,6 +198,6 @@ mod tests {
             .with_flag(Flag::with_name("foo").with_resolver(foo))
             .with_flag(Flag::with_name("bar").with_resolver(bar).accept_value())
             .with_resolver(resolver);
-        assert_eq!(app.run_args(vec!["a", "--foo", "--bar", ""]), Ok(3));
+        assert_eq!(app.run_args(vec!["a", "--foo"]), Ok(3));
     }
 }

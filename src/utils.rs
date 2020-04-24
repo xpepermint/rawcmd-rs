@@ -133,25 +133,31 @@ pub fn build_flag_summaries(command: &Command, args: &Vec<String>) -> Result<Vec
         };
 
         let value = match flag.accepts_value() {
-            true => match &args.get(index + 1) {
-                Some(value) => match flag.resolver() {
-                    Some(resolve) => resolve(Some(value.to_string()))?,
-                    None => Some(value.to_string()),
+            true => match args.get(index + 1) {
+                Some(value) => match value.starts_with("-") {
+                    true => return Err(ErrorCode::MissingFlagValue as usize),
+                    false => Some(value.to_string()),
                 },
                 None => return Err(ErrorCode::MissingFlagValue as usize),
             },
             false => None,
         };
-
-        items.push(build_flag_summary(&flag, true, &value));
+        items.push(build_flag_summary(flag, true, &match flag.resolver() {
+            Some(resolve) => resolve(value)?,
+            None => value,
+        }));
     }
  
     for flag in command.flags().into_iter() {
         let exists = &items.iter().any(|f| f.name() == flag.name());
         if !exists {
-            items.push(build_flag_summary(flag, false, &match flag.resolver() {
-                Some(resolve) => resolve(None)?,
+            let value = match flag.default_value() {
+                Some(v) => Some(v.to_string()),
                 None => None,
+            };
+            items.push(build_flag_summary(flag, false, &match flag.resolver() {
+                Some(resolve) => resolve(value)?,
+                None => value,
             }));
         }
     }

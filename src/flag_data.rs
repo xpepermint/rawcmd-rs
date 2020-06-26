@@ -1,6 +1,8 @@
+use std::str::FromStr;
+
 /// Structure which holds flag summary.
 #[derive(Debug, Clone, PartialEq)]
-pub struct FlagSummary {
+pub struct FlagData {
     name: String,
     alias: Option<String>,
     description: Option<String>,
@@ -11,7 +13,7 @@ pub struct FlagSummary {
 }
 
 /// Structure implementation.
-impl FlagSummary {
+impl FlagData {
 
     // Returns new instance.
     pub fn with_name<
@@ -38,7 +40,7 @@ impl FlagSummary {
 }
 
 /// Structure implementation.
-impl FlagSummary {
+impl FlagData {
 
     /// Returns name.
     pub fn name(&self) -> &String {
@@ -58,6 +60,20 @@ impl FlagSummary {
     /// Returns value.
     pub fn value(&self) -> &Option<String> {
         &self.value
+    }
+
+    /// Returns value.
+    pub fn to_value<T>(&self) -> Option<T>
+        where
+        T: FromStr,
+    {
+        match &self.value {
+            Some(v) => match v.parse::<T>() {
+                Ok(v) => Some(v),
+                Err(_) => None,
+            },
+            None => None,
+        }
     }
 
     /// Returns default value.

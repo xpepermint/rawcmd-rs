@@ -1,7 +1,7 @@
-use crate::{ErrorCode, CommandResolver, Flag, Resource, Intent, build_subcommand_positions,
-    build_command_summary, subcommand_at_position, build_supcommand_summaries,
-    build_subcommand_summaries, build_flag_summaries, build_resource_summaries,
-    parse_args};
+use crate::{Result, Error, ErrorKind, CommandResolver, Flag, Resource, Intent,
+    build_subcommand_positions, build_command_summary, subcommand_at_position,
+    build_supcommand_summaries, build_subcommand_summaries, build_flag_summaries,
+    build_resource_summaries, parse_args};
 
 /// Command structure which represents command-line task.
 pub struct Command {
@@ -127,12 +127,15 @@ impl Command {
     }
 
     /// Executes as a command-line application.
-    pub fn run(self) -> Result<usize, usize> {
+    pub fn run(self) -> Result<usize> {
         self.run_args(parse_args())
     }
 
     /// Executes as a command-line application.
-    pub fn run_args<S: Into<String>>(self, args: Vec<S>) -> Result<usize, usize> {
+    pub fn run_args<S>(self, args: Vec<S>) -> Result<usize>
+        where
+        S: Into<String>,
+    {
         let args = args.into_iter().map(|s| s.into()).collect();
         let command_positions = build_subcommand_positions(&self, &args)?;
         let command = subcommand_at_position(&self, &command_positions);
@@ -153,7 +156,7 @@ impl Command {
 
         match &command.resolver {
             Some(resolver) => resolver(intent),
-            None => return Err(ErrorCode::MissingResolver as usize),
+            None => return Err(Error::new(ErrorKind::MissingResolver, "Missing resolve function")),
         }
     }
 }
@@ -164,7 +167,7 @@ mod tests {
 
     #[test]
     fn resolves_command() {
-        fn resolver(_: Intent) -> Result<usize, usize> { Ok(1) };
+        fn resolver(_: Intent) -> Result<usize> { Ok(1) };
         let app = Command::with_name("a").with_resolver(resolver);
         assert_eq!(app.run_args(vec![""]), Ok(1));
         let app = Command::with_name("a").with_resolver(|_| { Ok(2) });
@@ -173,8 +176,8 @@ mod tests {
 
     #[test]
     fn resolves_subcommand() {
-        fn resolver0(_: Intent) -> Result<usize, usize> { Ok(1) };
-        fn resolver1(_: Intent) -> Result<usize, usize> { Ok(2) };
+        fn resolver0(_: Intent) -> Result<usize> { Ok(1) };
+        fn resolver1(_: Intent) -> Result<usize> { Ok(2) };
         let app = Command::with_name("a")
             .with_subcommand(Command::with_name("b").with_resolver(resolver0))
             .with_resolver(resolver1);
@@ -183,13 +186,13 @@ mod tests {
 
     #[test]
     fn resolves_flag() {
-        fn foo(_: Option<String>) -> Result<Option<String>, usize> {
+        fn foo(_: Option<String>) -> Result<Option<String>> {
             Ok(Some(String::from("-")))
         };
-        fn bar(_: Option<String>) -> Result<Option<String>, usize> {
+        fn bar(_: Option<String>) -> Result<Option<String>> {
             Ok(Some(String::from("--")))
         };
-        fn resolver(i: Intent) -> Result<usize, usize> {
+        fn resolver(i: Intent) -> Result<usize> {
             let foo = i.flag("foo").unwrap().value().as_ref().unwrap();
             let bar = i.flag("bar").unwrap().value().as_ref().unwrap();
             Ok(format!("{}{}", foo, bar).len())

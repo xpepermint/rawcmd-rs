@@ -1,6 +1,6 @@
 /// Structure with command summary.
 #[derive(Debug, Clone, PartialEq)]
-pub struct CommandSummary {
+pub struct CommandData {
     name: String,
     about: Option<String>,
     description: Option<String>,
@@ -9,7 +9,7 @@ pub struct CommandSummary {
 }
 
 /// Structure implementation.
-impl CommandSummary {
+impl CommandData {
 
     // Returns new instance.
     pub fn with_name<
@@ -32,7 +32,7 @@ impl CommandSummary {
 }
 
 /// Structure implementation.
-impl CommandSummary {
+impl CommandData {
 
     /// Returns name.
     pub fn name(&self) -> &String {

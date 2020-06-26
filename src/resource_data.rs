@@ -1,12 +1,12 @@
 /// Structure which holds resource summary.
 #[derive(Debug, Clone, PartialEq)]
-pub struct ResourceSummary {
+pub struct ResourceData {
     name: String,
     description: Option<String>,
 }
 
 /// Structure implementation.
-impl ResourceSummary {
+impl ResourceData {
 
     // Returns new instance.
     pub fn with_name<
@@ -23,7 +23,7 @@ impl ResourceSummary {
 }
 
 /// Structure implementation.
-impl ResourceSummary {
+impl ResourceData {
 
     /// Returns name.
     pub fn name(&self) -> &String {

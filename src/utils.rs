@@ -1,6 +1,6 @@
 use std::env;
-use crate::{Command, CommandSummary, ErrorCode, Flag, FlagSummary, Resource,
-    ResourceSummary};
+use crate::{Result, Error, ErrorKind, Command, CommandData, Flag, FlagData,
+    Resource, ResourceData};
 
 /// Parses command-line arguments.
 pub fn parse_args() -> Vec<String> {
@@ -16,7 +16,7 @@ pub fn split_equal_args(args: &Vec<String>) -> Vec<String> {
 }
 
 /// Parses arguments and finds command positions in a tree.
-pub fn build_subcommand_positions(app: &Command, args: &Vec<String>) -> Result<Vec<usize>, usize> {
+pub fn build_subcommand_positions(app: &Command, args: &Vec<String>) -> Result<Vec<usize>> {
     let mut args = args.clone();
     args.reverse();
 
@@ -39,7 +39,7 @@ pub fn build_subcommand_positions(app: &Command, args: &Vec<String>) -> Result<V
                 positions.push(index);
                 break;
             } else if index == size - 1 {
-                return Err(ErrorCode::UnknownCommand as usize);
+                return Err(Error::new(ErrorKind::UnknownCommand, format!("Unknown command: {}", arg)));
             }
         }
     }
@@ -57,8 +57,8 @@ pub fn subcommand_at_position<'a>(app: &'a Command, positions: &Vec<usize>) -> &
 }
 
 /// Returns command summary.
-pub fn build_command_summary(command: &Command) -> CommandSummary {
-    CommandSummary::with_name(
+pub fn build_command_summary(command: &Command) -> CommandData {
+    CommandData::with_name(
         command.name().clone().as_str(),
         command.about().clone(),
         command.description().clone(),
@@ -68,8 +68,8 @@ pub fn build_command_summary(command: &Command) -> CommandSummary {
 }
 
 /// Returns command summary.
-pub fn build_flag_summary(flag: &Flag, provided: bool, value: &Option<String>) -> FlagSummary {
-    FlagSummary::with_name(
+pub fn build_flag_summary(flag: &Flag, provided: bool, value: &Option<String>) -> FlagData {
+    FlagData::with_name(
         flag.name().clone().as_str(),
         flag.alias().clone(),
         flag.description().clone(),
@@ -81,15 +81,15 @@ pub fn build_flag_summary(flag: &Flag, provided: bool, value: &Option<String>) -
 }
 
 /// Returns resource summary.
-pub fn build_resource_summary(resource: &Resource) -> ResourceSummary {
-    ResourceSummary::with_name(
+pub fn build_resource_summary(resource: &Resource) -> ResourceData {
+    ResourceData::with_name(
         resource.name().clone().as_str(),
         resource.description().clone(),
     )
 }
 
 /// Returns summary objects of parent commands. 
-pub fn build_supcommand_summaries(app: &Command, positions: &Vec<usize>) -> Vec<CommandSummary> {
+pub fn build_supcommand_summaries(app: &Command, positions: &Vec<usize>) -> Vec<CommandData> {
     let mut items = Vec::new();
     items.push(build_command_summary(&app));
 
@@ -103,7 +103,7 @@ pub fn build_supcommand_summaries(app: &Command, positions: &Vec<usize>) -> Vec<
 }
 
 /// Returns summary objects of child commands. 
-pub fn build_subcommand_summaries(command: &Command) -> Vec<CommandSummary> {
+pub fn build_subcommand_summaries(command: &Command) -> Vec<CommandData> {
     let mut items = Vec::new();
     for subcommand in command.commands().into_iter() {
         items.push(build_command_summary(subcommand));
@@ -113,7 +113,7 @@ pub fn build_subcommand_summaries(command: &Command) -> Vec<CommandSummary> {
 }
 
 /// Returns flag summary objects for command. 
-pub fn build_flag_summaries(command: &Command, args: &Vec<String>) -> Result<Vec<FlagSummary>, usize> {
+pub fn build_flag_summaries(command: &Command, args: &Vec<String>) -> Result<Vec<FlagData>> {
     let mut items = Vec::new();
 
     for (index, arg) in args.into_iter().enumerate() {
@@ -129,16 +129,16 @@ pub fn build_flag_summaries(command: &Command, args: &Vec<String>) -> Result<Vec
             || f.alias().is_some() && *arg == format!("{}{}", "-", f.alias().as_ref().unwrap())
         }) {
             Some(f) => f,
-            None => return Err(ErrorCode::UnknownFlag as usize),
+            None => return Err(Error::new(ErrorKind::UnknownFlag, format!("Unknown flag: {}", arg))),
         };
 
         let value = match flag.accepts_value() {
             true => match args.get(index + 1) {
                 Some(value) => match value.starts_with("-") {
-                    true => return Err(ErrorCode::MissingFlagValue as usize),
+                    true => return Err(Error::new(ErrorKind::MissingFlagValue,format!("Missing flag value: {}", arg))),
                     false => Some(value.to_string()),
                 },
-                None => return Err(ErrorCode::MissingFlagValue as usize),
+                None => return Err(Error::new(ErrorKind::MissingFlagValue, format!("Missing flag value: {}", arg))),
             },
             false => None,
         };
@@ -166,7 +166,7 @@ pub fn build_flag_summaries(command: &Command, args: &Vec<String>) -> Result<Vec
 }
 
 /// Returns resource summary objects for command. 
-pub fn build_resource_summaries(command: &Command) -> Vec<ResourceSummary> {
+pub fn build_resource_summaries(command: &Command) -> Vec<ResourceData> {
     command.resources().iter().map(|r| {
         build_resource_summary(r)
     }).collect()
@@ -227,7 +227,7 @@ mod tests {
         let args = vec!["--aaa".to_string(), "-c".to_string(), "cval".to_string(), "--eee".to_string()];
         let summaries = build_flag_summaries(&command, &args).unwrap();
         let total = summaries.len();
-        let provided: Vec<FlagSummary> = summaries.into_iter()
+        let provided: Vec<FlagData> = summaries.into_iter()
             .filter(|s| s.provided()).collect();
         let names: Vec<String> = provided.iter()
             .map(|s| s.name().clone()).collect();

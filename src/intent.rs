@@ -1,14 +1,14 @@
-use crate::{CommandSummary, FlagSummary, ResourceSummary};
+use crate::{CommandData, FlagData, ResourceData};
 
 /// Intent structure which represents user intent.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Intent {
     args: Vec<String>,
-    command: CommandSummary,
-    supcommands: Vec<CommandSummary>,
-    subcommands: Vec<CommandSummary>,
-    flags: Vec<FlagSummary>,
-    resources: Vec<ResourceSummary>,
+    command: CommandData,
+    supcommands: Vec<CommandData>,
+    subcommands: Vec<CommandData>,
+    flags: Vec<FlagData>,
+    resources: Vec<ResourceData>,
 }
 
 /// Intent structure implementation.
@@ -17,11 +17,11 @@ impl Intent {
     /// Returns new instance.
     pub fn new(
         args: Vec<String>,
-        command: CommandSummary,
-        supcommands: Vec<CommandSummary>,
-        subcommands: Vec<CommandSummary>,
-        flags: Vec<FlagSummary>,
-        resources: Vec<ResourceSummary>,
+        command: CommandData,
+        supcommands: Vec<CommandData>,
+        subcommands: Vec<CommandData>,
+        flags: Vec<FlagData>,
+        resources: Vec<ResourceData>,
     ) -> Self {
         Self {
             args,
@@ -39,38 +39,38 @@ impl Intent {
     }
 
     /// Returns summary objects of the executed command.
-    pub fn command(&self) -> &CommandSummary {
+    pub fn command(&self) -> &CommandData {
         &self.command
     }
 
     /// Returns summary objects of parent commands in a tree.
-    pub fn supcommands(&self) -> &Vec<CommandSummary> {
+    pub fn supcommands(&self) -> &Vec<CommandData> {
         &self.supcommands
     }
 
     /// Returns summary objects of child commands.
-    pub fn subcommands(&self) -> &Vec<CommandSummary>{
+    pub fn subcommands(&self) -> &Vec<CommandData>{
         &self.subcommands
     }
 
     /// Returns summary objects of all flags.
-    pub fn flags(&self) -> &Vec<FlagSummary> {
+    pub fn flags(&self) -> &Vec<FlagData> {
         &self.flags
     }
 
     /// Returns summary objects of a specific flag.
-    pub fn flag<S: Into<String>>(&self, name: S) -> Option<&FlagSummary> {
+    pub fn flag<S: Into<String>>(&self, name: S) -> Option<&FlagData> {
         let name = name.into();
         self.flags.iter().find(|f| *f.name() == name)
     }
 
     /// Returns summary objects of all resources.
-    pub fn resources(&self) -> &Vec<ResourceSummary> {
+    pub fn resources(&self) -> &Vec<ResourceData> {
         &self.resources
     }
 
     /// Returns summary objects of a specific resource.
-    pub fn resource<S: Into<String>>(&self, name: S) -> Option<&ResourceSummary> {
+    pub fn resource<S: Into<String>>(&self, name: S) -> Option<&ResourceData> {
         let name = name.into();
         self.resources.iter().find(|f| *f.name() == name)
     }
@@ -131,29 +131,29 @@ mod tests {
     use super::*;
 
     fn intent_with_args(args: Vec<String>) -> Intent {
-        let command: CommandSummary = CommandSummary::with_name("", None, None, None, None);
-        let supcommands: Vec<CommandSummary> = vec![];
-        let subcommands: Vec<CommandSummary> = vec![];
-        let flags: Vec<FlagSummary> = vec![];
-        let resources: Vec<ResourceSummary> = vec![];
+        let command: CommandData = CommandData::with_name("", None, None, None, None);
+        let supcommands: Vec<CommandData> = vec![];
+        let subcommands: Vec<CommandData> = vec![];
+        let flags: Vec<FlagData> = vec![];
+        let resources: Vec<ResourceData> = vec![];
         Intent::new(args, command, supcommands, subcommands, flags, resources)
     }
 
-    fn intent_with_flags(flags: Vec<FlagSummary>) -> Intent {
+    fn intent_with_flags(flags: Vec<FlagData>) -> Intent {
         let args: Vec<String> = vec![];
-        let command: CommandSummary = CommandSummary::with_name("", None, None, None, None);
-        let supcommands: Vec<CommandSummary> = vec![];
-        let subcommands: Vec<CommandSummary> = vec![];
-        let flags: Vec<FlagSummary> = flags;
-        let resources: Vec<ResourceSummary> = vec![];
+        let command: CommandData = CommandData::with_name("", None, None, None, None);
+        let supcommands: Vec<CommandData> = vec![];
+        let subcommands: Vec<CommandData> = vec![];
+        let flags: Vec<FlagData> = flags;
+        let resources: Vec<ResourceData> = vec![];
         Intent::new(args, command, supcommands, subcommands, flags, resources)
     }
 
     #[test]
     fn provides_flag_by_name() {
         let intent = intent_with_flags(vec![
-            FlagSummary::with_name("a", None, None, None, None, false, false),
-            FlagSummary::with_name("b", None, None, None, None, false, false),
+            FlagData::with_name("a", None, None, None, None, false, false),
+            FlagData::with_name("b", None, None, None, None, false, false),
         ]);
         assert_eq!(intent.flag("b").unwrap().name(), "b");
     }
@@ -170,7 +170,7 @@ mod tests {
     #[test]
     fn checks_flag_existance() {
         let intent = intent_with_flags(vec![
-            FlagSummary::with_name("b", None, None, None, None, false, false),
+            FlagData::with_name("b", None, None, None, None, false, false),
         ]);
         assert_eq!(intent.has_flag("b"), true);
         assert_eq!(intent.has_flag("x"), false);

@@ -28,8 +28,14 @@ fn main() {
         .with_resolver(|_| Ok(3))
         .run()
     {
-        Ok(code) => println!("Success: {:?}", code),
-        Err(code) => println!("Error: {:?}", code),
+        Ok(code) => {
+            println!("Success: {:?}", code);
+            std::process::exit(0);
+        },
+        Err(error) => {
+            println!("Error: {:?}", error);
+            std::process::exit(1);
+        },
     }
 }
 ```
@@ -41,7 +47,7 @@ The function `with_resolver` accepts closures and function pointers:
 command.with_resolver(|_| Ok(1))
 
 // function pointer
-fn resolver(_: Intent) -> Result<usize, usize> { Ok(2) }
+fn resolver(_: Intent) -> rawcmd::Result<usize> { Ok(2) }
 command.with_resolver(&resolver)
 ```
 

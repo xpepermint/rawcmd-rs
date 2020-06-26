@@ -1,3 +1,3 @@
-use crate::intent::Intent;
+use crate::{Intent, Result};
 
-pub type CommandResolver = fn(Intent) -> Result<usize, usize>;
+pub type CommandResolver = fn(Intent) -> Result<usize>;

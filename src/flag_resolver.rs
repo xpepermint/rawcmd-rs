@@ -1,3 +1,3 @@
 use crate::Result;
 
-pub type FlagResolver = fn(Option<String>) -> Result<Option<String>>;
+pub type FlagResolver = fn(input: Option<String>) -> Result<Option<String>>;

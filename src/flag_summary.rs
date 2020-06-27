@@ -2,7 +2,7 @@ use std::str::FromStr;
 
 /// Structure which holds flag summary.
 #[derive(Debug, Clone, PartialEq)]
-pub struct FlagData {
+pub struct FlagSummary {
     name: String,
     alias: Option<String>,
     description: Option<String>,
@@ -13,7 +13,7 @@ pub struct FlagData {
 }
 
 /// Structure implementation.
-impl FlagData {
+impl FlagSummary {
 
     // Returns new instance.
     pub fn with_name<
@@ -40,7 +40,7 @@ impl FlagData {
 }
 
 /// Structure implementation.
-impl FlagData {
+impl FlagSummary {
 
     /// Returns name.
     pub fn name(&self) -> &String {

@@ -156,7 +156,7 @@ impl Command {
 
         match &command.resolver {
             Some(resolver) => resolver(intent),
-            None => return Err(Error::new(ErrorKind::MissingResolver, "Missing resolve function")),
+            None => return Err(Error::new(ErrorKind::MissingCommandResolver(command.name().to_string()))),
         }
     }
 }

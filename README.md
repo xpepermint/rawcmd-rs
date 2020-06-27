@@ -40,17 +40,6 @@ fn main() {
 }
 ```
 
-The function `with_resolver` accepts closures and function pointers:
-
-```rs
-// closure
-command.with_resolver(|_| Ok(1))
-
-// function pointer
-fn resolver(_: Intent) -> rawcmd::Result<usize> { Ok(2) }
-command.with_resolver(&resolver)
-```
-
 ## TO-DO
 
-* Support command inputs (e.g. `cli command <input0> <input1>`).
+* Support command inputs (e.g. `cli <COMMAND> <FLAG> <INPUT0> <INPUT1>`).

@@ -2,11 +2,12 @@ use std::error;
 use std::fmt;
 use crate::ErrorKind;
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug)]
 pub struct Error {
     kind: ErrorKind,
     message: String,
-    exit_code: i32,
+    status: i32,
+    source: Option<Box<dyn error::Error + 'static>>,
 }
 
 impl Error {
@@ -14,8 +15,21 @@ impl Error {
     pub fn new(kind: ErrorKind) -> Self {
         Self {
             message: error_message(&kind),
-            exit_code: error_exit_code(&kind),
+            status: error_status(&kind),
             kind,
+            source: None,
+        }
+    }
+
+    pub fn with_source<E>(source: E, kind: ErrorKind) -> Self
+        where
+        E: std::error::Error + 'static,
+    {
+        Self {
+            message: error_message(&kind),
+            status: error_status(&kind),
+            kind,
+            source: Some(Box::new(source)),
         }
     }
 
@@ -27,35 +41,39 @@ impl Error {
         &self.message
     }
 
-    pub fn exit_code(&self) -> &i32 {
-        &self.exit_code
+    pub fn status(&self) -> &i32 {
+        &self.status
+    }
+
+    pub fn source(&self) -> Option<&(dyn error::Error + 'static)> {
+        self.source.as_ref().map(|e| e.as_ref())
     }
 }
 
 impl std::default::Default for Error {
-
     fn default() -> Self {
         Self {
-            message: error_message(&ErrorKind::General),
-            exit_code: error_exit_code(&ErrorKind::General),
-            kind: ErrorKind::General,
+            message: error_message(&ErrorKind::GeneralError),
+            status: error_status(&ErrorKind::GeneralError),
+            kind: ErrorKind::GeneralError,
+            source: None,
         }
     }
 }
 
 impl error::Error for Error {
-
-    fn description(&self) -> &str {
-        &self.message()
+    fn source(&self) -> Option<&(dyn error::Error + 'static)> {
+        self.source.as_ref().map(|e| e.as_ref())
     }
+}
 
-    fn source(&self) -> Option<&'static dyn std::error::Error> {
-        None
+impl PartialEq for Error {
+    fn eq(&self, other: &Self) -> bool {
+        self.kind == other.kind
     }
 }
 
 impl fmt::Display for Error {
-
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}", self.message())
     }
@@ -63,22 +81,24 @@ impl fmt::Display for Error {
 
 fn error_message(kind: &ErrorKind) -> String {
     match kind {
-        ErrorKind::General => format!("Unknown error occurred while processing."),
-        ErrorKind::UnknownCommand(name) => format!("The requested command \"{}\" does not exist.", name),
-        ErrorKind::MissingCommandResolver(name) => format!("The requested command \"{}\" does not have has a resolver.", name),
-        ErrorKind::UnknownFlag(name) => format!("The provided flag \"{}\" does not exist.", name),
-        ErrorKind::MissingFlagValue(name) => format!("The provided flag \"{}\" should have a value.", name),
-        ErrorKind::InvalidFlagValue(name) => format!("The provided flag \"{}\" has invalid value.", name),
+        ErrorKind::GeneralError => format!("Unknown error occurred while processing."),
+        ErrorKind::UnknownCommand(name) => format!("The requested command `{}` does not exist.", name),
+        ErrorKind::UnknownFlag(name) => format!("The provided flag `{}` does not exist.", name),
+        ErrorKind::MissingCommandResolver(name) => format!("The requested command `{}` does not have a resolver.", name),
+        ErrorKind::MissingFlagValue(name) => format!("The provided flag `{}` should have a value.", name),
+        ErrorKind::InvalidFlagValue(name) => format!("The provided flag `{}` has invalid value.", name),
+        ErrorKind::CommandFailed(name) => format!("The requested command `{}` failed to execute.", name),
     }
 }
 
-fn error_exit_code(kind: &ErrorKind) -> i32 {
+fn error_status(kind: &ErrorKind) -> i32 {
     match kind { // [64 - 113]
-        ErrorKind::General => 1,
+        ErrorKind::GeneralError => 1,
         ErrorKind::UnknownCommand(_) => 65,
         ErrorKind::UnknownFlag(_) => 66,
+        ErrorKind::MissingCommandResolver(_) => 68,
         ErrorKind::MissingFlagValue(_) => 67,
         ErrorKind::InvalidFlagValue(_) => 69,
-        ErrorKind::MissingCommandResolver(_) => 68,
+        ErrorKind::CommandFailed(_) => 70,
     }
 }

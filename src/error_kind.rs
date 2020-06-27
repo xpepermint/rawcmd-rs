@@ -1,9 +1,10 @@
 #[derive(Debug, Clone, PartialEq)]
 pub enum ErrorKind {
-    General,
+    GeneralError,
     UnknownCommand(String),
-    MissingCommandResolver(String),
     UnknownFlag(String),
+    MissingCommandResolver(String),
     MissingFlagValue(String),
     InvalidFlagValue(String),
+    CommandFailed(String),
 }

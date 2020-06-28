@@ -2,11 +2,11 @@
 pub enum ErrorKind {
     GeneralError,
     UnknownCommand(String),
-    UnknownFlag(String),
     MissingCommandResolver(String),
+    CommandFailed(String),
+    UnknownFlag(String),
     MissingFlagValue(String),
     InvalidFlagValue(String),
     InvalidParamValue(usize,),
-    ToManyParameters(usize, usize),
-    CommandFailed(String),
+    ToManyParams(usize, usize),
 }

@@ -238,7 +238,7 @@ pub fn build_param_summaries<A, T>(command: &Command, args: A) -> Result<Vec<Par
     let params_count = params.len();
     let input_count = inputs.len();
     if params_count < input_count {
-        return Err(Error::new(ErrorKind::ToManyParameters(params_count, input_count)));
+        return Err(Error::new(ErrorKind::ToManyParams(params_count, input_count)));
     }
 
     let mut items = Vec::new();

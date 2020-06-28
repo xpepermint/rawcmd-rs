@@ -1,6 +1,6 @@
 use std::env;
 use crate::{Result, Error, ErrorKind, Command, CommandSummary, Flag, FlagSummary,
-    Resource, ResourceSummary};
+    Param, ParamSummary, Resource, ResourceSummary};
 
 /// Parses command-line arguments.
 pub fn parse_args() -> Vec<String> {
@@ -21,8 +21,12 @@ pub fn split_equal_args(args: &Vec<String>) -> Vec<String> {
 }
 
 /// Parses arguments and finds command positions in a tree.
-pub fn build_subcommand_positions(app: &Command, args: &Vec<String>) -> Result<Vec<usize>> {
-    let mut args = args.clone();
+pub fn build_subcommand_positions<A, T>(app: &Command, args: A) -> Result<Vec<usize>>
+    where
+    A: IntoIterator<Item = T>,
+    T: Into<String>,
+{
+    let mut args: Vec<String> = args.into_iter().map(Into::into).collect();
     args.reverse();
 
     let mut positions: Vec<usize> = Vec::new();
@@ -85,6 +89,17 @@ pub fn build_flag_summary(flag: &Flag, provided: bool, value: &Option<String>) -
     )
 }
 
+/// Returns command summary.
+pub fn build_param_summary(param: &Param, provided: bool, value: &Option<String>) -> ParamSummary {
+    ParamSummary::with_name(
+        param.name().clone().as_str(),
+        param.description().clone(),
+        value.clone(),
+        param.default_value().clone(),
+        provided.clone(),
+    )
+}
+
 /// Returns resource summary.
 pub fn build_resource_summary(resource: &Resource) -> ResourceSummary {
     ResourceSummary::with_name(
@@ -118,10 +133,15 @@ pub fn build_subcommand_summaries(command: &Command) -> Vec<CommandSummary> {
 }
 
 /// Returns flag summary objects for command. 
-pub fn build_flag_summaries(command: &Command, args: &Vec<String>) -> Result<Vec<FlagSummary>> {
-    let mut items = Vec::new();
+pub fn build_flag_summaries<A, T>(command: &Command, args: A) -> Result<Vec<FlagSummary>>
+    where
+    A: IntoIterator<Item = T>,
+    T: Into<String>,
+{
+    let args: Vec<String> = args.into_iter().map(Into::into).collect();
 
-    for (index, arg) in args.into_iter().enumerate() {
+    let mut items = Vec::new();
+    for (index, arg) in args.iter().enumerate() {
 
         if !arg.starts_with("-") {
             continue
@@ -147,6 +167,7 @@ pub fn build_flag_summaries(command: &Command, args: &Vec<String>) -> Result<Vec
             },
             false => None,
         };
+    
         items.push(build_flag_summary(flag, true, &match flag.resolver() {
             Some(resolve) => resolve(value)?,
             None => value,
@@ -167,6 +188,56 @@ pub fn build_flag_summaries(command: &Command, args: &Vec<String>) -> Result<Vec
         }
     }
     items.sort_by(|a, b| a.name().to_lowercase().cmp(&b.name().to_lowercase()));
+    Ok(items)
+}
+
+/// Returns param summary objects for command. 
+pub fn build_param_summaries<A, T>(command: &Command, args: A) -> Result<Vec<ParamSummary>>
+    where
+    A: IntoIterator<Item = T>,
+    T: Into<String>,
+{
+    let args = args.into_iter().map(Into::into).collect::<Vec<String>>();
+
+    let mut inputs = Vec::new();
+    let mut command = command;
+    for arg in args {
+        if arg == "--" {
+            break;
+        } else if arg.starts_with("-") {
+            continue;
+        } else {
+            if let Some(subcmd) = command.commands().iter().find(|c| c.name().eq(&arg)) {
+                command = subcmd;
+                continue;
+            }
+        }
+        inputs.push(arg);
+    }
+    inputs.reverse();
+
+    let mut params = command.params().clone();
+    params.reverse();
+
+    let params_count = params.len();
+    let input_count = inputs.len();
+    if params_count < input_count {
+        return Err(Error::new(ErrorKind::ToManyParameters(params_count, input_count)));
+    }
+
+    let mut items = Vec::new();
+    for (index, param) in params.iter().enumerate() {
+        let input = match inputs.get(index) {
+            Some(input) => Some(input.to_string()),
+            None => None,
+        };
+        items.push(build_param_summary(param, input.is_some(), &match param.resolver() {
+            Some(resolve) => resolve(input)?,
+            None => input,
+        }));
+    }
+    items.reverse();
+    
     Ok(items)
 }
 
@@ -197,8 +268,7 @@ mod tests {
                     .with_subcommand(Command::with_name("bbb"))
                     .with_subcommand(Command::with_name("ccc"))
         );
-        let args = vec!["aaa".to_string(), "ccc".to_string()];
-        let positions = build_subcommand_positions(&command, &args).unwrap();
+        let positions = build_subcommand_positions(&command, vec!["aaa", "ccc"]).unwrap();
         let total = positions.len();
         assert_eq!(total, 2);
         assert_eq!(positions, [0, 1]);
@@ -213,8 +283,7 @@ mod tests {
                         Command::with_name("bbb")
                     )
             );
-        let args = vec!["aaa".to_string(), "bbb".to_string()];
-        let positions = build_subcommand_positions(&command, &args).unwrap();
+        let positions = build_subcommand_positions(&command, vec!["aaa", "bbb"]).unwrap();
         let summaries = build_supcommand_summaries(&command, &positions);
         let names: Vec<String> = summaries.iter()
             .map(|s| s.name().clone()).collect();
@@ -229,15 +298,43 @@ mod tests {
             .with_flag(Flag::with_name("ccc").with_alias("c").accept_value())
             .with_flag(Flag::with_name("ddd").with_alias("d"))
             .with_flag(Flag::with_name("eee"));
-        let args = vec!["--aaa".to_string(), "-c".to_string(), "cval".to_string(), "--eee".to_string()];
-        let summaries = build_flag_summaries(&command, &args).unwrap();
-        let total = summaries.len();
-        let provided: Vec<FlagSummary> = summaries.into_iter()
-            .filter(|s| s.provided()).collect();
-        let names: Vec<String> = provided.iter()
-            .map(|s| s.name().clone()).collect();
-        assert_eq!(total, 5);
-        assert_eq!(names, ["aaa", "ccc", "eee"]);
-        assert_eq!(provided.get(1).unwrap().value().as_ref().unwrap(), "cval");
+        let summaries0 = build_flag_summaries(&command, vec!["cmd", "--aaa", "-c", "cval", "--eee", "--"]).unwrap();
+        let summaries1 = build_flag_summaries(&command, vec!["--aaa", "-c", "cval", "--eee"]).unwrap();
+        let provided0: Vec<FlagSummary> = summaries0.iter().filter(|s| s.provided()).cloned().collect();
+        let provided1: Vec<FlagSummary> = summaries1.iter().filter(|s| s.provided()).cloned().collect();
+        let names0: Vec<String> = provided0.iter().map(|s| s.name().clone()).collect();
+        let names1: Vec<String> = provided1.iter().map(|s| s.name().clone()).collect();
+        assert_eq!(summaries0.len(), 5);
+        assert_eq!(summaries1.len(), 5);
+        assert_eq!(names0, ["aaa", "ccc", "eee"]);
+        assert_eq!(names1, ["aaa", "ccc", "eee"]);
+        assert_eq!(provided0.get(1).unwrap().value().as_ref().unwrap(), "cval");
+    }
+
+    #[test]
+    fn builds_param_summaries() {
+        let command = Command::with_name("")
+            .with_subcommand(
+                Command::with_name("cmd")
+                    .with_param(Param::with_name("ddd"))
+            )
+            .with_param(Param::with_name("aaa"))
+            .with_param(Param::with_name("bbb"))
+            .with_param(Param::with_name("ccc"));
+        let summaries0 = build_param_summaries(&command, vec!["--aaa", "-c", "bbb", "ccc", "--"]).unwrap();
+        let summaries1 = build_param_summaries(&command, vec!["cmd", "-c", "ddd"]).unwrap();
+        let summaries2 = build_param_summaries(&command, vec!["cmd", "ddd"]).unwrap();
+        let provided0: Vec<ParamSummary> = summaries0.iter().filter(|s| s.provided()).cloned().collect();
+        let provided1: Vec<ParamSummary> = summaries1.iter().filter(|s| s.provided()).cloned().collect();
+        let provided2: Vec<ParamSummary> = summaries2.iter().filter(|s| s.provided()).cloned().collect();
+        let names0: Vec<String> = provided0.iter().map(|s| s.name().clone()).collect();
+        let names1: Vec<String> = provided1.iter().map(|s| s.name().clone()).collect();
+        let names2: Vec<String> = provided2.iter().map(|s| s.name().clone()).collect();
+        assert_eq!(summaries0.len(), 3);
+        assert_eq!(summaries1.len(), 1);
+        assert_eq!(summaries2.len(), 1);
+        assert_eq!(names0, ["bbb", "ccc"]);
+        assert_eq!(names1, ["ddd"]);
+        assert_eq!(names2, ["ddd"]);
     }
 }

@@ -1,9 +1,10 @@
-use crate::{Result, Error, ErrorKind, CommandResolver, Flag, Resource, Intent,
+use crate::{Result, Error, ErrorKind, CommandResolver, Flag, Param, Resource, Intent,
     build_subcommand_positions, build_command_summary, subcommand_at_position,
     build_supcommand_summaries, build_subcommand_summaries, build_flag_summaries,
-    build_resource_summaries, parse_args};
+    build_param_summaries, build_resource_summaries, parse_args};
 
 /// Command structure which represents command-line task.
+#[derive(Debug, Clone, PartialEq)]
 pub struct Command {
     name: String,
     about: Option<String>,
@@ -11,6 +12,7 @@ pub struct Command {
     author: Option<String>,
     version: Option<String>,
     flags: Vec<Flag>,
+    params: Vec<Param>,
     resources: Vec<Resource>,
     commands: Vec<Command>,
     resolver: Option<CommandResolver>,
@@ -49,6 +51,11 @@ impl Command {
         &self.flags
     }
 
+    /// Returns flags.
+    pub fn params(&self) -> &Vec<Param> {
+        &self.params
+    }
+
     /// Returns resources.
     pub fn resources(&self) -> &Vec<Resource> {
         &self.resources
@@ -69,6 +76,7 @@ impl Command {
             name: name.into(),
             about: None,
             flags: Vec::new(),
+            params: Vec::new(),
             resources: Vec::new(),
             commands: Vec::new(),
             resolver: None,
@@ -114,6 +122,12 @@ impl Command {
         self
     }
 
+    /// Adds param.
+    pub fn with_param(mut self, param: Param) -> Self {
+        self.params.push(param);
+        self
+    }
+
     /// Adds resource.
     pub fn with_resource(mut self, resource: Resource) -> Self {
         self.resources.push(resource);
@@ -132,17 +146,19 @@ impl Command {
     }
 
     /// Executes as a command-line application.
-    pub fn run_args<S>(self, args: Vec<S>) -> Result<usize>
+    pub fn run_args<A, T>(self, args: A) -> Result<usize>
         where
-        S: Into<String>,
+        A: IntoIterator<Item = T>,
+        T: Into<String>,
     {
-        let args = args.into_iter().map(|s| s.into()).collect();
+        let args: Vec<String> = args.into_iter().map(Into::into).collect();
         let command_positions = build_subcommand_positions(&self, &args)?;
         let command = subcommand_at_position(&self, &command_positions);
         let command_summary = build_command_summary(&command);
         let supcommand_summaries = build_supcommand_summaries(&self, &command_positions);
         let subcommand_summaries = build_subcommand_summaries(&command);
         let flag_summaries = build_flag_summaries(&command, &args)?;
+        let param_summaries = build_param_summaries(&self, &args)?;
         let resource_summaries = build_resource_summaries(&command);
 
         let intent = Intent::new(
@@ -151,6 +167,7 @@ impl Command {
             supcommand_summaries,
             subcommand_summaries,
             flag_summaries,
+            param_summaries,
             resource_summaries,
         );
 
@@ -169,9 +186,9 @@ mod tests {
     fn resolves_command() {
         fn resolver(_: Intent) -> Result<usize> { Ok(1) };
         let app = Command::with_name("a").with_resolver(resolver);
-        assert_eq!(app.run_args(vec![""]), Ok(1));
+        assert_eq!(app.run_args(vec![] as Vec<String>), Ok(1));
         let app = Command::with_name("a").with_resolver(|_| { Ok(2) });
-        assert_eq!(app.run_args(vec![""]), Ok(2));
+        assert_eq!(app.run_args(vec![] as Vec<String>), Ok(2));
     }
 
     #[test]
@@ -201,6 +218,27 @@ mod tests {
             .with_flag(Flag::with_name("foo").with_resolver(foo))
             .with_flag(Flag::with_name("bar").with_resolver(bar).accept_value())
             .with_resolver(resolver);
-        assert_eq!(app.run_args(vec!["a", "--foo"]), Ok(3));
+        assert_eq!(app.run_args(vec!["--foo"]), Ok(3));
+    }
+
+    #[test]
+    fn resolves_param() {
+        fn foo(_: Option<String>) -> Result<Option<String>> {
+            Ok(Some(String::from("-")))
+        };
+        fn bar(_: Option<String>) -> Result<Option<String>> {
+            Ok(Some(String::from("--")))
+        };
+        fn resolver(i: Intent) -> Result<usize> {
+            let foo = i.param("foo").unwrap().value().as_ref().unwrap();
+            let bar = i.param("bar").unwrap().value().as_ref().unwrap();
+            Ok(format!("{}{}", foo, bar).len())
+        };
+        let app = Command::with_name("a")
+            .with_flag(Flag::with_name("foo"))
+            .with_param(Param::with_name("foo").with_resolver(foo))
+            .with_param(Param::with_name("bar").with_resolver(bar))
+            .with_resolver(resolver);
+        assert_eq!(app.run_args(vec!["--foo", "1", "2", "--", "bar"]), Ok(3));
     }
 }

@@ -1,6 +1,12 @@
 > Command-line application framework.
 
-## Example
+## Usage
+
+The command line parser will search for the following pattern:
+
+```sh
+$ myapp <COMMAND> <FLAGS> <PARAMS> -- <TAIL>
+```
 
 A simple command-line application could look something like this:
 
@@ -14,6 +20,10 @@ fn main() {
             Flag::with_name("flag1")
                 .with_alias("f1")
                 .with_description("Flag 1")
+        )
+        .with_param(
+            Param::with_name("param1")
+                .with_description("Param 1")
         )
         .with_subcommand(
             Command::with_name("bar")
@@ -39,7 +49,3 @@ fn main() {
     }
 }
 ```
-
-## TO-DO
-
-* Support command inputs (e.g. `cli <COMMAND> <FLAG> <INPUT0> <INPUT1>`).

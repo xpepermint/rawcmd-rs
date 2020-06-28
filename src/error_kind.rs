@@ -6,5 +6,7 @@ pub enum ErrorKind {
     MissingCommandResolver(String),
     MissingFlagValue(String),
     InvalidFlagValue(String),
+    InvalidParamValue(usize,),
+    ToManyParameters(usize, usize),
     CommandFailed(String),
 }

@@ -1,4 +1,4 @@
-use crate::{CommandSummary, FlagSummary, ResourceSummary};
+use crate::{CommandSummary, FlagSummary, ParamSummary, ResourceSummary};
 
 /// Intent structure which represents user intent.
 #[derive(Debug, Clone, PartialEq)]
@@ -8,6 +8,7 @@ pub struct Intent {
     supcommands: Vec<CommandSummary>,
     subcommands: Vec<CommandSummary>,
     flags: Vec<FlagSummary>,
+    params: Vec<ParamSummary>,
     resources: Vec<ResourceSummary>,
 }
 
@@ -21,6 +22,7 @@ impl Intent {
         supcommands: Vec<CommandSummary>,
         subcommands: Vec<CommandSummary>,
         flags: Vec<FlagSummary>,
+        params: Vec<ParamSummary>,
         resources: Vec<ResourceSummary>,
     ) -> Self {
         Self {
@@ -29,6 +31,7 @@ impl Intent {
             supcommands,
             subcommands,
             flags,
+            params,
             resources
         }
     }
@@ -64,6 +67,17 @@ impl Intent {
         self.flags.iter().find(|f| *f.name() == name)
     }
 
+    /// Returns summary objects of all params.
+    pub fn params(&self) -> &Vec<ParamSummary> {
+        &self.params
+    }
+
+    /// Returns summary objects of a specific flag.
+    pub fn param<S: Into<String>>(&self, name: S) -> Option<&ParamSummary> {
+        let name = name.into();
+        self.params.iter().find(|f| *f.name() == name)
+    }
+    
     /// Returns summary objects of all resources.
     pub fn resources(&self) -> &Vec<ResourceSummary> {
         &self.resources
@@ -115,6 +129,25 @@ impl Intent {
         }
     }
 
+    /// Returns true if the executed command has params.
+    pub fn has_params(&self) -> bool {
+        !self.params.is_empty()
+    }
+
+    /// Returns true if param is present.
+    pub fn has_param<S: Into<String>>(&self, name: S) -> bool {
+        self.param(name.into()).is_some()
+    }
+
+    /// Returns true if param is present.
+    pub fn has_provided_param<S: Into<String>>(&self, name: S) -> bool {
+        let name = name.into();
+        match self.param(name) {
+            Some(f) => f.provided(),
+            None => false,
+        }
+    }
+
     /// Returns true if the executed command has resources.
     pub fn has_resources(&self) -> bool {
         !self.resources.is_empty()
@@ -135,8 +168,9 @@ mod tests {
         let supcommands: Vec<CommandSummary> = vec![];
         let subcommands: Vec<CommandSummary> = vec![];
         let flags: Vec<FlagSummary> = vec![];
+        let params: Vec<ParamSummary> = vec![];
         let resources: Vec<ResourceSummary> = vec![];
-        Intent::new(args, command, supcommands, subcommands, flags, resources)
+        Intent::new(args, command, supcommands, subcommands, flags, params, resources)
     }
 
     fn intent_with_flags(flags: Vec<FlagSummary>) -> Intent {
@@ -145,8 +179,20 @@ mod tests {
         let supcommands: Vec<CommandSummary> = vec![];
         let subcommands: Vec<CommandSummary> = vec![];
         let flags: Vec<FlagSummary> = flags;
+        let params: Vec<ParamSummary> = vec![];
         let resources: Vec<ResourceSummary> = vec![];
-        Intent::new(args, command, supcommands, subcommands, flags, resources)
+        Intent::new(args, command, supcommands, subcommands, flags, params, resources)
+    }
+
+    fn intent_with_params(params: Vec<ParamSummary>) -> Intent {
+        let args: Vec<String> = vec![];
+        let command: CommandSummary = CommandSummary::with_name("", None, None, None, None);
+        let supcommands: Vec<CommandSummary> = vec![];
+        let subcommands: Vec<CommandSummary> = vec![];
+        let flags: Vec<FlagSummary> = vec![];
+        let params: Vec<ParamSummary> = params;
+        let resources: Vec<ResourceSummary> = vec![];
+        Intent::new(args, command, supcommands, subcommands, flags, params, resources)
     }
 
     #[test]
@@ -156,6 +202,15 @@ mod tests {
             FlagSummary::with_name("b", None, None, None, None, false, false),
         ]);
         assert_eq!(intent.flag("b").unwrap().name(), "b");
+    }
+
+    #[test]
+    fn provides_param_by_name() {
+        let intent = intent_with_params(vec![
+            ParamSummary::with_name("a", None, None, None, false),
+            ParamSummary::with_name("b", None, None, None, false),
+        ]);
+        assert_eq!(intent.param("b").unwrap().name(), "b");
     }
 
     #[test]
@@ -176,4 +231,12 @@ mod tests {
         assert_eq!(intent.has_flag("x"), false);
     }
 
+    #[test]
+    fn checks_param_existance() {
+        let intent = intent_with_params(vec![
+            ParamSummary::with_name("b", None, None, None, false),
+        ]);
+        assert_eq!(intent.has_param("b"), true);
+        assert_eq!(intent.has_param("x"), false);
+    }
 }

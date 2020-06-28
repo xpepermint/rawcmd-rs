@@ -87,6 +87,8 @@ fn error_message(kind: &ErrorKind) -> String {
         ErrorKind::MissingCommandResolver(name) => format!("The requested command `{}` does not have a resolver.", name),
         ErrorKind::MissingFlagValue(name) => format!("The provided flag `{}` should have a value.", name),
         ErrorKind::InvalidFlagValue(name) => format!("The provided flag `{}` has invalid value.", name),
+        ErrorKind::InvalidParamValue(index) => format!("The provided param `{}` has invalid value.", index),
+        ErrorKind::ToManyParameters(expected, found) => format!("Expected `{}` parameters, found {}.", expected, found),
         ErrorKind::CommandFailed(name) => format!("The requested command `{}` failed to execute.", name),
     }
 }
@@ -97,8 +99,10 @@ fn error_status(kind: &ErrorKind) -> i32 {
         ErrorKind::UnknownCommand(_) => 65,
         ErrorKind::UnknownFlag(_) => 66,
         ErrorKind::MissingCommandResolver(_) => 68,
-        ErrorKind::MissingFlagValue(_) => 67,
-        ErrorKind::InvalidFlagValue(_) => 69,
-        ErrorKind::CommandFailed(_) => 70,
+        ErrorKind::MissingFlagValue(_) => 69,
+        ErrorKind::InvalidFlagValue(_) => 70,
+        ErrorKind::InvalidParamValue(_) => 71,
+        ErrorKind::ToManyParameters(_, _) => 67,
+        ErrorKind::CommandFailed(_) => 72,
     }
 }

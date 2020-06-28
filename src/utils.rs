@@ -197,24 +197,40 @@ pub fn build_param_summaries<A, T>(command: &Command, args: A) -> Result<Vec<Par
     A: IntoIterator<Item = T>,
     T: Into<String>,
 {
-    let args = args.into_iter().map(Into::into).collect::<Vec<String>>();
+    let mut args = args.into_iter().map(Into::into).collect::<Vec<String>>();
+    args.reverse();
 
     let mut inputs = Vec::new();
     let mut command = command;
-    for arg in args {
+    let mut stage = 0; // 0..comman, 1..flag, 2..param
+    while let Some(arg) = args.pop() {
         if arg == "--" {
             break;
         } else if arg.starts_with("-") {
+            if let Some(flag) = command.flags().iter().find(|f| {
+                arg.starts_with("--") && f.name().eq(&arg[2..].to_string())
+                || arg.starts_with("-") && f.alias().eq(&Some(arg[1..].to_string()))
+            }) {
+                if flag.accepts_value() {
+                    args.pop();
+                }
+            }
+            stage = 1;
             continue;
-        } else {
+        } else if stage == 1 && !arg.starts_with("-") {
+            stage = 2;
+        } else if stage == 0 {
             if let Some(subcmd) = command.commands().iter().find(|c| c.name().eq(&arg)) {
                 command = subcmd;
                 continue;
+            } else {
+                stage = 2;
             }
         }
-        inputs.push(arg);
+        if stage == 2 {
+            inputs.push(arg);
+        }
     }
-    inputs.reverse();
 
     let mut params = command.params().clone();
     params.reverse();
@@ -316,12 +332,15 @@ mod tests {
         let command = Command::with_name("")
             .with_subcommand(
                 Command::with_name("cmd")
+                    .with_flag(Flag::with_name("bbb").with_alias("c"))
                     .with_param(Param::with_name("ddd"))
             )
+            .with_flag(Flag::with_name("aaa"))
+            .with_flag(Flag::with_name("bbb").with_alias("c").accept_value())
             .with_param(Param::with_name("aaa"))
             .with_param(Param::with_name("bbb"))
             .with_param(Param::with_name("ccc"));
-        let summaries0 = build_param_summaries(&command, vec!["--aaa", "-c", "bbb", "ccc", "--"]).unwrap();
+        let summaries0 = build_param_summaries(&command, vec!["--aaa", "-c", "x", "bbb", "ccc", "--"]).unwrap();
         let summaries1 = build_param_summaries(&command, vec!["cmd", "-c", "ddd"]).unwrap();
         let summaries2 = build_param_summaries(&command, vec!["cmd", "ddd"]).unwrap();
         let provided0: Vec<ParamSummary> = summaries0.iter().filter(|s| s.provided()).cloned().collect();

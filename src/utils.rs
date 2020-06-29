@@ -1,5 +1,5 @@
 use std::env;
-use crate::{Context, Result, Error, ErrorKind, Command, CommandSummary, Flag, FlagSummary,
+use crate::{Result, Error, ErrorKind, Command, CommandSummary, Flag, FlagSummary,
     Param, ParamSummary, Resource, ResourceSummary};
 
 /// Parses command-line arguments.
@@ -168,10 +168,7 @@ pub fn build_flag_summaries<C, A, T>(command: &Command<C>, args: A) -> Result<Ve
             false => None,
         };
     
-        items.push(build_flag_summary(flag, true, &match flag.resolver() {
-            Some(resolve) => resolve(value)?,
-            None => value,
-        }));
+        items.push(build_flag_summary(flag, true, &value));
     }
  
     for flag in command.flags().into_iter() {
@@ -181,10 +178,7 @@ pub fn build_flag_summaries<C, A, T>(command: &Command<C>, args: A) -> Result<Ve
                 Some(v) => Some(v.to_string()),
                 None => None,
             };
-            items.push(build_flag_summary(flag, false, &match flag.resolver() {
-                Some(resolve) => resolve(value)?,
-                None => value,
-            }));
+            items.push(build_flag_summary(flag, false, &value));
         }
     }
     items.sort_by(|a, b| a.name().to_lowercase().cmp(&b.name().to_lowercase()));
@@ -247,10 +241,7 @@ pub fn build_param_summaries<C, A, T>(command: &Command<C>, args: A) -> Result<V
             Some(input) => Some(input.to_string()),
             None => None,
         };
-        items.push(build_param_summary(param, input.is_some(), &match param.resolver() {
-            Some(resolve) => resolve(input)?,
-            None => input,
-        }));
+        items.push(build_param_summary(param, input.is_some(), &input));
     }
     items.reverse();
     
@@ -267,6 +258,7 @@ pub fn build_resource_summaries<C>(command: &Command<C>) -> Vec<ResourceSummary>
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::Context;
 
     #[test]
     fn splits_equal_args() {

@@ -1,12 +1,9 @@
-use crate::{ParamResolver};
-
 /// Param structure which represents command-line option.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Param {
     name: String,
     description: Option<String>,
     default_value: Option<String>,
-    resolver: Option<ParamResolver>,
 }
 
 /// Param structure implementation.
@@ -26,11 +23,6 @@ impl Param {
     pub fn default_value(&self) -> &Option<String> {
         &self.default_value
     }
-
-    /// Returns resolver.
-    pub fn resolver(&self) -> &Option<ParamResolver> {
-        &self.resolver
-    }
 }
 
 /// Param structure implementation.
@@ -42,7 +34,6 @@ impl Param {
             name: name.into(),
             description: None,
             default_value: None,
-            resolver: None,
         }
     }
 
@@ -55,12 +46,6 @@ impl Param {
     /// Sets value.
     pub fn with_default_value<S: Into<String>>(mut self, val: S) -> Self {
         self.default_value = Some(val.into());
-        self
-    }
-
-    /// Sets resolver.
-    pub fn with_resolver(mut self, val: ParamResolver) -> Self {
-        self.resolver = Some(val);
         self
     }
 }

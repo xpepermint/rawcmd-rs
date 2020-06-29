@@ -182,70 +182,6 @@ impl<C> Command<C> {
 mod tests {
     use super::*;
 
-
-
-
-
-
-
-    #[test]
-    fn xxx() {
-
-    //     type Resolver<C> = fn(C); // lib
-
-    //     pub struct Command<C = String> {
-    //         pub resolver: Resolver<C>,
-    //     }
-    
-    //     impl<C> Command<C> {
-    //         pub fn perform(&self, ctx: C) { // lib
-    //             let resolver = self.resolver;
-    //             resolver(ctx);
-    //         }
-    //     }
-        
-
-
-
-
-
-    //     // 1
-
-    //     struct Data {
-    //         pub name: String,
-    //     }
-
-    //     fn resolver(ctx: Data) {
-    //         println!("ctx1: {}", ctx.name);
-    //     };
-
-    //     let data = Data{ name: String::from("John Smith 1") };
-    //     let cmd = Command::<Data>{ resolver };
-    //     cmd.perform(data);
-
-    //     // 2
-
-    //     fn resolver2(ctx: String) {
-    //         println!("ctx2: {}", ctx);
-    //     };
-
-    //     let data = String::from("John Smith 2");
-    //     let cmd = Command{ resolver: resolver2 };
-    //     cmd.perform(data);
-
-
-    }
-
-
-
-
-
-
-
-
-
-
-
     #[test]
     fn resolves_command() {
         fn resolver(_: Intent, _: Context) -> Result<usize> { Ok(1) }
@@ -265,48 +201,5 @@ mod tests {
             .with_subcommand(Command::with_name("b").with_resolver(resolver0))
             .with_resolver(resolver1);
         assert_eq!(app.run_args(vec!["b"], ctx), Ok(1));
-    }
-
-    #[test]
-    fn resolves_flag() {
-        fn foo(_: Option<String>) -> Result<Option<String>> {
-            Ok(Some(String::from("-")))
-        }
-        fn bar(_: Option<String>) -> Result<Option<String>> {
-            Ok(Some(String::from("--")))
-        }
-        fn resolver(i: Intent, _: Context) -> Result<usize> {
-            let foo = i.flag("foo").unwrap().value().as_ref().unwrap();
-            let bar = i.flag("bar").unwrap().value().as_ref().unwrap();
-            Ok(format!("{}{}", foo, bar).len())
-        }
-        let ctx = Context::default();
-        let app = Command::with_name("a")
-            .with_flag(Flag::with_name("foo").with_resolver(foo))
-            .with_flag(Flag::with_name("bar").with_resolver(bar).accept_value())
-            .with_resolver(resolver);
-        assert_eq!(app.run_args(vec!["--foo"], ctx), Ok(3));
-    }
-
-    #[test]
-    fn resolves_param() {
-        fn foo(_: Option<String>) -> Result<Option<String>> {
-            Ok(Some(String::from("-")))
-        };
-        fn bar(_: Option<String>) -> Result<Option<String>> {
-            Ok(Some(String::from("--")))
-        };
-        fn resolver(i: Intent, _: Context) -> Result<usize> {
-            let foo = i.param("foo").unwrap().value().as_ref().unwrap();
-            let bar = i.param("bar").unwrap().value().as_ref().unwrap();
-            Ok(format!("{}{}", foo, bar).len())
-        };
-        let ctx = Context::default();
-        let app = Command::with_name("a")
-            .with_flag(Flag::with_name("foo"))
-            .with_param(Param::with_name("foo").with_resolver(foo))
-            .with_param(Param::with_name("bar").with_resolver(bar))
-            .with_resolver(resolver);
-        assert_eq!(app.run_args(vec!["--foo", "1", "2", "--", "bar"], ctx), Ok(3));
     }
 }

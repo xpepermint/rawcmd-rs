@@ -1,5 +1,3 @@
-use crate::{FlagResolver};
-
 /// Flag structure which represents command-line option.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Flag {
@@ -8,7 +6,6 @@ pub struct Flag {
     description: Option<String>,
     default_value: Option<String>,
     accepts_value: bool,
-    resolver: Option<FlagResolver>,
 }
 
 /// Flag structure implementation.
@@ -38,11 +35,6 @@ impl Flag {
     pub fn accepts_value(&self) -> bool {
         self.accepts_value
     }
-
-    /// Returns resolver.
-    pub fn resolver(&self) -> &Option<FlagResolver> {
-        &self.resolver
-    }
 }
 
 /// Flag structure implementation.
@@ -56,7 +48,6 @@ impl Flag {
             description: None,
             default_value: None,
             accepts_value: false,
-            resolver: None,
         }
     }
 
@@ -81,12 +72,6 @@ impl Flag {
     /// Sets value.
     pub fn accept_value(mut self) -> Self {
         self.accepts_value = true;
-        self
-    }
-
-    /// Sets resolver.
-    pub fn with_resolver(mut self, val: FlagResolver) -> Self {
-        self.resolver = Some(val);
         self
     }
 }

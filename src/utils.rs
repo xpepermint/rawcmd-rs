@@ -1,5 +1,5 @@
 use std::env;
-use crate::{Result, Error, ErrorKind, Command, CommandSummary, Flag, FlagSummary,
+use crate::{Context, Result, Error, ErrorKind, Command, CommandSummary, Flag, FlagSummary,
     Param, ParamSummary, Resource, ResourceSummary};
 
 /// Parses command-line arguments.
@@ -21,7 +21,7 @@ pub fn split_equal_args(args: &Vec<String>) -> Vec<String> {
 }
 
 /// Parses arguments and finds command positions in a tree.
-pub fn build_subcommand_positions<A, T>(app: &Command, args: A) -> Result<Vec<usize>>
+pub fn build_subcommand_positions<C, A, T>(app: &Command<C>, args: A) -> Result<Vec<usize>>
     where
     A: IntoIterator<Item = T>,
     T: Into<String>,
@@ -57,7 +57,7 @@ pub fn build_subcommand_positions<A, T>(app: &Command, args: A) -> Result<Vec<us
 }
 
 /// Returns command object based on the position in arguments.
-pub fn subcommand_at_position<'a>(app: &'a Command, positions: &Vec<usize>) -> &'a Command {
+pub fn subcommand_at_position<'a, C>(app: &'a Command<C>, positions: &Vec<usize>) -> &'a Command<C> {
     let mut command = app;
     for position in positions.clone().into_iter() {
         command = &command.commands().get(position).unwrap();
@@ -66,7 +66,7 @@ pub fn subcommand_at_position<'a>(app: &'a Command, positions: &Vec<usize>) -> &
 }
 
 /// Returns command summary.
-pub fn build_command_summary(command: &Command) -> CommandSummary {
+pub fn build_command_summary<C>(command: &Command<C>) -> CommandSummary {
     CommandSummary::with_name(
         command.name().clone().as_str(),
         command.about().clone(),
@@ -109,7 +109,7 @@ pub fn build_resource_summary(resource: &Resource) -> ResourceSummary {
 }
 
 /// Returns summary objects of parent commands. 
-pub fn build_supcommand_summaries(app: &Command, positions: &Vec<usize>) -> Vec<CommandSummary> {
+pub fn build_supcommand_summaries<C>(app: &Command<C>, positions: &Vec<usize>) -> Vec<CommandSummary> {
     let mut items = Vec::new();
     items.push(build_command_summary(&app));
 
@@ -123,7 +123,7 @@ pub fn build_supcommand_summaries(app: &Command, positions: &Vec<usize>) -> Vec<
 }
 
 /// Returns summary objects of child commands. 
-pub fn build_subcommand_summaries(command: &Command) -> Vec<CommandSummary> {
+pub fn build_subcommand_summaries<C>(command: &Command<C>) -> Vec<CommandSummary> {
     let mut items = Vec::new();
     for subcommand in command.commands().into_iter() {
         items.push(build_command_summary(subcommand));
@@ -133,7 +133,7 @@ pub fn build_subcommand_summaries(command: &Command) -> Vec<CommandSummary> {
 }
 
 /// Returns flag summary objects for command. 
-pub fn build_flag_summaries<A, T>(command: &Command, args: A) -> Result<Vec<FlagSummary>>
+pub fn build_flag_summaries<C, A, T>(command: &Command<C>, args: A) -> Result<Vec<FlagSummary>>
     where
     A: IntoIterator<Item = T>,
     T: Into<String>,
@@ -192,7 +192,7 @@ pub fn build_flag_summaries<A, T>(command: &Command, args: A) -> Result<Vec<Flag
 }
 
 /// Returns param summary objects for command. 
-pub fn build_param_summaries<A, T>(command: &Command, args: A) -> Result<Vec<ParamSummary>>
+pub fn build_param_summaries<C, A, T>(command: &Command<C>, args: A) -> Result<Vec<ParamSummary>>
     where
     A: IntoIterator<Item = T>,
     T: Into<String>,
@@ -258,7 +258,7 @@ pub fn build_param_summaries<A, T>(command: &Command, args: A) -> Result<Vec<Par
 }
 
 /// Returns resource summary objects for command. 
-pub fn build_resource_summaries(command: &Command) -> Vec<ResourceSummary> {
+pub fn build_resource_summaries<C>(command: &Command<C>) -> Vec<ResourceSummary> {
     command.resources().iter().map(|r| {
         build_resource_summary(r)
     }).collect()
@@ -278,7 +278,7 @@ mod tests {
 
     #[test]
     fn builds_command_positions() {
-        let command = Command::with_name("000")
+        let command = Command::<Context>::with_name("000")
             .with_subcommand(
                 Command::with_name("aaa")
                     .with_subcommand(Command::with_name("bbb"))
@@ -292,7 +292,7 @@ mod tests {
 
     #[test]
     fn builds_supcommand_summaries() {
-        let command = Command::with_name("000")
+        let command = Command::<Context>::with_name("000")
             .with_subcommand(
                 Command::with_name("aaa")
                     .with_subcommand(
@@ -308,7 +308,7 @@ mod tests {
 
     #[test]
     fn builds_flag_summaries() {
-        let command = Command::with_name("")
+        let command = Command::<Context>::with_name("")
             .with_flag(Flag::with_name("aaa"))
             .with_flag(Flag::with_name("bbb").with_alias("b"))
             .with_flag(Flag::with_name("ccc").with_alias("c").accept_value())
@@ -329,7 +329,7 @@ mod tests {
 
     #[test]
     fn builds_param_summaries() {
-        let command = Command::with_name("")
+        let command = Command::<Context>::with_name("")
             .with_subcommand(
                 Command::with_name("cmd")
                     .with_flag(Flag::with_name("bbb").with_alias("c"))

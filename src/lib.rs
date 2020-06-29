@@ -1,5 +1,6 @@
 mod command_summary;
 mod command;
+mod context;
 mod error;
 mod error_kind;
 mod flag_resolver;
@@ -17,6 +18,7 @@ mod utils;
 
 pub use command_summary::*;
 pub use command::*;
+pub use context::*;
 pub use error::*;
 pub use error_kind::*;
 pub use flag_resolver::*;

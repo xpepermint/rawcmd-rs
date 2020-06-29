@@ -1,11 +1,11 @@
-use crate::{Result, Error, ErrorKind, CommandResolver, Flag, Param, Resource, Intent,
+use crate::{Context, Result, Error, ErrorKind, CommandResolver, Flag, Param, Resource, Intent,
     build_subcommand_positions, build_command_summary, subcommand_at_position,
     build_supcommand_summaries, build_subcommand_summaries, build_flag_summaries,
     build_param_summaries, build_resource_summaries, parse_args};
 
 /// Command structure which represents command-line task.
-#[derive(Debug, Clone, PartialEq)]
-pub struct Command {
+#[derive(Debug, PartialEq)]
+pub struct Command<C = Context> {
     name: String,
     about: Option<String>,
     description: Option<String>,
@@ -14,12 +14,12 @@ pub struct Command {
     flags: Vec<Flag>,
     params: Vec<Param>,
     resources: Vec<Resource>,
-    commands: Vec<Command>,
-    resolver: Option<CommandResolver>,
+    commands: Vec<Command<C>>,
+    resolver: Option<CommandResolver<C>>,
 }
 
 /// Command structure implementation.
-impl Command {
+impl<C> Command<C> {
 
     /// Returns name.
     pub fn name(&self) -> &String {
@@ -62,13 +62,13 @@ impl Command {
     }
 
     /// Returns commands.
-    pub fn commands(&self) -> &Vec<Command> {
+    pub fn commands(&self) -> &Vec<Command<C>> {
         &self.commands
     }
 }
 
 /// Command structure implementation.
-impl Command {
+impl<C> Command<C> {
 
     /// Returns new instance.
     pub fn with_name<S: Into<String>>(name: S) -> Self {
@@ -111,7 +111,7 @@ impl Command {
     }
     
     /// Sets resolver function.
-    pub fn with_resolver(mut self, resolver: CommandResolver) -> Self {
+    pub fn with_resolver(mut self, resolver: CommandResolver<C>) -> Self {
         self.resolver = Some(resolver);
         self
     }
@@ -135,18 +135,18 @@ impl Command {
     }
 
     /// Adds subcommand.
-    pub fn with_subcommand(mut self, command: Command) -> Self {
+    pub fn with_subcommand(mut self, command: Command<C>) -> Self {
         self.commands.push(command);
         self
     }
 
     /// Executes as a command-line application.
-    pub fn run(self) -> Result<usize> {
-        self.run_args(parse_args())
+    pub fn run(self, ctx: C) -> Result<usize> {
+        self.run_args(parse_args(), ctx)
     }
 
     /// Executes as a command-line application.
-    pub fn run_args<A, T>(self, args: A) -> Result<usize>
+    pub fn run_args<A, T>(self, args: A, ctx: C) -> Result<usize>
         where
         A: IntoIterator<Item = T>,
         T: Into<String>,
@@ -172,7 +172,7 @@ impl Command {
         );
 
         match &command.resolver {
-            Some(resolver) => resolver(intent),
+            Some(resolver) => resolver(intent, ctx),
             None => return Err(Error::new(ErrorKind::MissingCommandResolver(command.name().to_string()))),
         }
     }
@@ -182,43 +182,110 @@ impl Command {
 mod tests {
     use super::*;
 
+
+
+
+
+
+
+    #[test]
+    fn xxx() {
+
+    //     type Resolver<C> = fn(C); // lib
+
+    //     pub struct Command<C = String> {
+    //         pub resolver: Resolver<C>,
+    //     }
+    
+    //     impl<C> Command<C> {
+    //         pub fn perform(&self, ctx: C) { // lib
+    //             let resolver = self.resolver;
+    //             resolver(ctx);
+    //         }
+    //     }
+        
+
+
+
+
+
+    //     // 1
+
+    //     struct Data {
+    //         pub name: String,
+    //     }
+
+    //     fn resolver(ctx: Data) {
+    //         println!("ctx1: {}", ctx.name);
+    //     };
+
+    //     let data = Data{ name: String::from("John Smith 1") };
+    //     let cmd = Command::<Data>{ resolver };
+    //     cmd.perform(data);
+
+    //     // 2
+
+    //     fn resolver2(ctx: String) {
+    //         println!("ctx2: {}", ctx);
+    //     };
+
+    //     let data = String::from("John Smith 2");
+    //     let cmd = Command{ resolver: resolver2 };
+    //     cmd.perform(data);
+
+
+    }
+
+
+
+
+
+
+
+
+
+
+
     #[test]
     fn resolves_command() {
-        fn resolver(_: Intent) -> Result<usize> { Ok(1) };
+        fn resolver(_: Intent, _: Context) -> Result<usize> { Ok(1) }
+        let ctx = Context::default();
         let app = Command::with_name("a").with_resolver(resolver);
-        assert_eq!(app.run_args(vec![] as Vec<String>), Ok(1));
-        let app = Command::with_name("a").with_resolver(|_| { Ok(2) });
-        assert_eq!(app.run_args(vec![] as Vec<String>), Ok(2));
+        assert_eq!(app.run_args(vec![] as Vec<String>, ctx.clone()), Ok(1));
+        let app = Command::with_name("a").with_resolver(|_, _| { Ok(2) });
+        assert_eq!(app.run_args(vec![] as Vec<String>, ctx), Ok(2));
     }
 
     #[test]
     fn resolves_subcommand() {
-        fn resolver0(_: Intent) -> Result<usize> { Ok(1) };
-        fn resolver1(_: Intent) -> Result<usize> { Ok(2) };
+        fn resolver0(_: Intent, _: Context) -> Result<usize> { Ok(1) };
+        fn resolver1(_: Intent, _: Context) -> Result<usize> { Ok(2) };
+        let ctx = Context::default();
         let app = Command::with_name("a")
             .with_subcommand(Command::with_name("b").with_resolver(resolver0))
             .with_resolver(resolver1);
-        assert_eq!(app.run_args(vec!["b"]), Ok(1));
+        assert_eq!(app.run_args(vec!["b"], ctx), Ok(1));
     }
 
     #[test]
     fn resolves_flag() {
         fn foo(_: Option<String>) -> Result<Option<String>> {
             Ok(Some(String::from("-")))
-        };
+        }
         fn bar(_: Option<String>) -> Result<Option<String>> {
             Ok(Some(String::from("--")))
-        };
-        fn resolver(i: Intent) -> Result<usize> {
+        }
+        fn resolver(i: Intent, _: Context) -> Result<usize> {
             let foo = i.flag("foo").unwrap().value().as_ref().unwrap();
             let bar = i.flag("bar").unwrap().value().as_ref().unwrap();
             Ok(format!("{}{}", foo, bar).len())
-        };
+        }
+        let ctx = Context::default();
         let app = Command::with_name("a")
             .with_flag(Flag::with_name("foo").with_resolver(foo))
             .with_flag(Flag::with_name("bar").with_resolver(bar).accept_value())
             .with_resolver(resolver);
-        assert_eq!(app.run_args(vec!["--foo"]), Ok(3));
+        assert_eq!(app.run_args(vec!["--foo"], ctx), Ok(3));
     }
 
     #[test]
@@ -229,16 +296,17 @@ mod tests {
         fn bar(_: Option<String>) -> Result<Option<String>> {
             Ok(Some(String::from("--")))
         };
-        fn resolver(i: Intent) -> Result<usize> {
+        fn resolver(i: Intent, _: Context) -> Result<usize> {
             let foo = i.param("foo").unwrap().value().as_ref().unwrap();
             let bar = i.param("bar").unwrap().value().as_ref().unwrap();
             Ok(format!("{}{}", foo, bar).len())
         };
+        let ctx = Context::default();
         let app = Command::with_name("a")
             .with_flag(Flag::with_name("foo"))
             .with_param(Param::with_name("foo").with_resolver(foo))
             .with_param(Param::with_name("bar").with_resolver(bar))
             .with_resolver(resolver);
-        assert_eq!(app.run_args(vec!["--foo", "1", "2", "--", "bar"]), Ok(3));
+        assert_eq!(app.run_args(vec!["--foo", "1", "2", "--", "bar"], ctx), Ok(3));
     }
 }

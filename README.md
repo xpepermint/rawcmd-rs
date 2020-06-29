@@ -11,7 +11,7 @@ $ myapp <COMMAND> <FLAGS> <PARAMS> -- <TAIL>
 A simple command-line application could look something like this:
 
 ```rs
-use rawcmd::{Command, Flag, Intent};
+use rawcmd::{Context, Command, Flag, Intent};
 
 fn main() {
     match Command::with_name("foo")
@@ -33,10 +33,12 @@ fn main() {
                         .with_alias("f2")
                         .with_description("Flag 2")
                 )
-                .with_resolver(|_| Ok(2))
+                .with_resolver(|_intent, _context| Ok(2))
         )
-        .with_resolver(|_| Ok(3))
-        .run()
+        .with_resolver(|_intent, _context| Ok(3))
+        .run(
+            Context::default(),
+        )
     {
         Ok(code) => {
             println!("Success: {:?}", code);
@@ -48,4 +50,13 @@ fn main() {
         },
     }
 }
+```
+
+You can use your own custom context object as well:
+
+```rs
+...
+.run<MyContext>(
+    MyContext::default()
+)
 ```

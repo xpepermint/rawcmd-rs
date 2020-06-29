@@ -3,10 +3,10 @@ pub enum ErrorKind {
     GeneralError,
     UnknownCommand(String),
     MissingCommandResolver(String),
-    CommandFailed(String),
+    CommandFailed(String), // prepared
     UnknownFlag(String),
     MissingFlagValue(String),
-    InvalidFlagValue(String),
-    InvalidParamValue(usize,),
+    InvalidFlagValue(String), // prepared
+    InvalidParamValue(usize,), // prepared
     ToManyParams(usize, usize),
 }

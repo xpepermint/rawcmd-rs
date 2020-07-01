@@ -149,12 +149,12 @@ impl<C> Command<C> {
     }
 
     /// Executes as a command-line application.
-    pub fn run(self, ctx: &mut C) -> Result<usize> {
+    pub fn run(self, ctx: &mut C) -> Result<i32> {
         self.run_args(parse_args(), ctx)
     }
 
     /// Executes as a command-line application.
-    pub fn run_args<A, T>(self, args: A, ctx: &mut C) -> Result<usize>
+    pub fn run_args<A, T>(self, args: A, ctx: &mut C) -> Result<i32>
         where
         A: IntoIterator<Item = T>,
         T: Into<String>,
@@ -199,7 +199,7 @@ mod tests {
 
     #[test]
     fn resolves_command() {
-        fn resolver(_: &Intent, _: &mut Context) -> Result<usize> { Ok(1) }
+        fn resolver(_: &Intent, _: &mut Context) -> Result<i32> { Ok(1) }
         let mut ctx = Context::default();
         let app = Command::with_name("a").with_resolver(resolver);
         assert_eq!(app.run_args(vec![] as Vec<String>, &mut ctx), Ok(1));
@@ -209,8 +209,8 @@ mod tests {
 
     #[test]
     fn resolves_subcommand() {
-        fn resolver0(_: &Intent, _: &mut Context) -> Result<usize> { Ok(1) };
-        fn resolver1(_: &Intent, _: &mut Context) -> Result<usize> { Ok(2) };
+        fn resolver0(_: &Intent, _: &mut Context) -> Result<i32> { Ok(1) };
+        fn resolver1(_: &Intent, _: &mut Context) -> Result<i32> { Ok(2) };
         let mut ctx = Context::default();
         let app = Command::with_name("a")
             .with_subcommand(Command::with_name("b").with_resolver(resolver0))
@@ -220,8 +220,8 @@ mod tests {
 
     #[test]
     fn handles_error() {
-        fn resolver(_: &Intent, _: &mut Context) -> Result<usize> { Err(Error::default()) }
-        fn handler(_error: Error, _: &Intent, _: &mut Context) -> Result<usize> { Ok(1) }
+        fn resolver(_: &Intent, _: &mut Context) -> Result<i32> { Err(Error::default()) }
+        fn handler(_error: Error, _: &Intent, _: &mut Context) -> Result<i32> { Ok(1) }
         let mut ctx = Context::default();
         let app = Command::with_name("a").with_resolver(resolver).with_handler(handler);
         assert_eq!(app.run_args(vec![] as Vec<String>, &mut ctx), Ok(1));

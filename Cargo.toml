@@ -2,7 +2,7 @@
 name = "rawcmd"
 description = "Command-line application framework."
 license = "MIT"
-version = "0.6.1"
+version = "0.6.2"
 authors = ["Kristijan Sedlak <xpepermint@gmail.com>"]
 edition = "2018"
 documentation = "https://github.com/xpepermint/rawcmd"

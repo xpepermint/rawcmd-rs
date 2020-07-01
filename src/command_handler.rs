@@ -1,3 +1,3 @@
-use crate::{Error, Intent, Result};
+use crate::{Error, Result};
 
-pub type CommandHandler<C> = fn(err: Error, intent: &Intent, context: &mut C) -> Result<i32>;
+pub type CommandHandler<C> = fn(err: Error, context: &mut C) -> Result<i32>;

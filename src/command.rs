@@ -187,7 +187,7 @@ impl<C> Command<C> {
             None => Error::new(ErrorKind::MissingCommandResolver(command.name().to_string())),
         };
         match &command.handler {
-            Some(handler) => handler(err, &intent, ctx),
+            Some(handler) => handler(err, ctx),
             None => Err(err),
         }
     }
@@ -221,7 +221,7 @@ mod tests {
     #[test]
     fn handles_error() {
         fn resolver(_: &Intent, _: &mut Context) -> Result<i32> { Err(Error::default()) }
-        fn handler(_error: Error, _: &Intent, _: &mut Context) -> Result<i32> { Ok(1) }
+        fn handler(_error: Error, _: &mut Context) -> Result<i32> { Ok(1) }
         let mut ctx = Context::default();
         let app = Command::with_name("a").with_resolver(resolver).with_handler(handler);
         assert_eq!(app.run_args(vec![] as Vec<String>, &mut ctx), Ok(1));

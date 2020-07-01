@@ -33,11 +33,12 @@ fn main() {
                         .with_alias("f2")
                         .with_description("Flag 2")
                 )
-                .with_resolver(|_intent, _context| Ok(2))
+                .with_resolver(|_intent, &mut _context| Ok(2))
         )
-        .with_resolver(|_intent, _context| Ok(3))
+        .with_resolver(|_intent, &mut _context| Ok(3))
+        .with_handler(|_error, _intent, &mut _context| Ok(4))
         .run(
-            Context::default(),
+            &mut Context::default(),
         )
     {
         Ok(code) => {

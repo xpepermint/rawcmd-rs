@@ -1,10 +1,10 @@
-use crate::{Context, Result, Error, ErrorKind, CommandResolver, Flag, Param, Resource, Intent,
-    build_subcommand_positions, build_command_summary, subcommand_at_position,
-    build_supcommand_summaries, build_subcommand_summaries, build_flag_summaries,
-    build_param_summaries, build_resource_summaries, parse_args};
+use crate::{Context, Result, Error, ErrorKind, CommandResolver, CommandHandler,
+    Flag, Param, Resource, Intent, build_subcommand_positions,
+    build_command_summary, subcommand_at_position, build_supcommand_summaries,
+    build_subcommand_summaries, build_flag_summaries, build_param_summaries,
+    build_resource_summaries, parse_args};
 
 /// Command structure which represents command-line task.
-#[derive(Debug, PartialEq)]
 pub struct Command<C = Context> {
     name: String,
     about: Option<String>,
@@ -15,6 +15,7 @@ pub struct Command<C = Context> {
     params: Vec<Param>,
     resources: Vec<Resource>,
     commands: Vec<Command<C>>,
+    handler: Option<CommandHandler<C>>,
     resolver: Option<CommandResolver<C>>,
 }
 
@@ -79,6 +80,7 @@ impl<C> Command<C> {
             params: Vec::new(),
             resources: Vec::new(),
             commands: Vec::new(),
+            handler: None,
             resolver: None,
             description: None,
             author: None,
@@ -110,6 +112,12 @@ impl<C> Command<C> {
         self
     }
     
+    /// Sets error handler function.
+    pub fn with_handler(mut self, handler: CommandHandler<C>) -> Self {
+        self.handler = Some(handler);
+        self
+    }
+
     /// Sets resolver function.
     pub fn with_resolver(mut self, resolver: CommandResolver<C>) -> Self {
         self.resolver = Some(resolver);
@@ -141,12 +149,12 @@ impl<C> Command<C> {
     }
 
     /// Executes as a command-line application.
-    pub fn run(self, ctx: C) -> Result<usize> {
+    pub fn run(self, ctx: &mut C) -> Result<usize> {
         self.run_args(parse_args(), ctx)
     }
 
     /// Executes as a command-line application.
-    pub fn run_args<A, T>(self, args: A, ctx: C) -> Result<usize>
+    pub fn run_args<A, T>(self, args: A, ctx: &mut C) -> Result<usize>
         where
         A: IntoIterator<Item = T>,
         T: Into<String>,
@@ -171,9 +179,16 @@ impl<C> Command<C> {
             resource_summaries,
         );
 
-        match &command.resolver {
-            Some(resolver) => resolver(intent, ctx),
-            None => return Err(Error::new(ErrorKind::MissingCommandResolver(command.name().to_string()))),
+        let err = match &command.resolver {
+            Some(resolver) => match resolver(&intent, ctx) {
+                Ok(code) => return Ok(code),
+                Err(err) => err,
+            },
+            None => Error::new(ErrorKind::MissingCommandResolver(command.name().to_string())),
+        };
+        match &command.handler {
+            Some(handler) => handler(err, &intent, ctx),
+            None => Err(err),
         }
     }
 }
@@ -184,22 +199,31 @@ mod tests {
 
     #[test]
     fn resolves_command() {
-        fn resolver(_: Intent, _: Context) -> Result<usize> { Ok(1) }
-        let ctx = Context::default();
+        fn resolver(_: &Intent, _: &mut Context) -> Result<usize> { Ok(1) }
+        let mut ctx = Context::default();
         let app = Command::with_name("a").with_resolver(resolver);
-        assert_eq!(app.run_args(vec![] as Vec<String>, ctx.clone()), Ok(1));
+        assert_eq!(app.run_args(vec![] as Vec<String>, &mut ctx), Ok(1));
         let app = Command::with_name("a").with_resolver(|_, _| { Ok(2) });
-        assert_eq!(app.run_args(vec![] as Vec<String>, ctx), Ok(2));
+        assert_eq!(app.run_args(vec![] as Vec<String>, &mut ctx), Ok(2));
     }
 
     #[test]
     fn resolves_subcommand() {
-        fn resolver0(_: Intent, _: Context) -> Result<usize> { Ok(1) };
-        fn resolver1(_: Intent, _: Context) -> Result<usize> { Ok(2) };
-        let ctx = Context::default();
+        fn resolver0(_: &Intent, _: &mut Context) -> Result<usize> { Ok(1) };
+        fn resolver1(_: &Intent, _: &mut Context) -> Result<usize> { Ok(2) };
+        let mut ctx = Context::default();
         let app = Command::with_name("a")
             .with_subcommand(Command::with_name("b").with_resolver(resolver0))
             .with_resolver(resolver1);
-        assert_eq!(app.run_args(vec!["b"], ctx), Ok(1));
+        assert_eq!(app.run_args(vec!["b"], &mut ctx), Ok(1));
+    }
+
+    #[test]
+    fn handles_error() {
+        fn resolver(_: &Intent, _: &mut Context) -> Result<usize> { Err(Error::default()) }
+        fn handler(_error: Error, _: &Intent, _: &mut Context) -> Result<usize> { Ok(1) }
+        let mut ctx = Context::default();
+        let app = Command::with_name("a").with_resolver(resolver).with_handler(handler);
+        assert_eq!(app.run_args(vec![] as Vec<String>, &mut ctx), Ok(1));
     }
 }
